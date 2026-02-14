@@ -381,9 +381,9 @@ app.get('/', (req, res) => {
     if (host.includes('shirasagi-hs')) {
         res.sendFile(path.join(__dirname, '../public/html/other/shirasagi.html'));
     } else if (host.includes('kobekyo')) {
-        res.sendFile(path.join(__dirname, '../public/html/home2.html'));
+        res.sendFile(path.join(__dirname, '../public/html/other/kobekyo.html'));
     } else {
-        res.status(404).sendFile(path.join(__dirname, '../public/html/404.html'));
+        res.sendFile(path.join(__dirname, '../public/html/other/shirasagi.html'));
     }
 });
 
@@ -465,6 +465,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
