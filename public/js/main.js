@@ -1,6 +1,6 @@
 // ============================
 // メインJS
-// Copyright 2026 Team Sonahiru
+// Copyright 2026 Team xxxxxxxw
 // ============================
 
 // ORIGINを宣言
