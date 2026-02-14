@@ -1,6 +1,6 @@
 // ============================
 // Service Worker
-// Copyright 2026 Team Sonahiru
+// Copyright 2026 Team xxxxxxx
 // ============================
 
 // プロキシのオリジン (例: http://localhost:3000)
