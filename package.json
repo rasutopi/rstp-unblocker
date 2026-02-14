@@ -1,7 +1,7 @@
 {
-  "name": "sonahiruproxy2",
+  "name": "rstp-proxy",
   "version": "0",
-  "description": "sonahiru",
+  "description": "made by team xxxxxxx",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js"
@@ -15,8 +15,9 @@
     "node-fetch": "^2.7.0",
     "cors": "^2.8.6"
   },
-  "author": "Sonahiru Team",
+  "author": "Team xxxxxxx",
   "license": "MIT",
   "keywords": []
 }
+
 
