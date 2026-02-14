@@ -1,6 +1,6 @@
 // ============================
 // プロキシ用のlocationを作成
-// Copyright 2026 Team Sonahiru
+// Copyright 2026 Team xxxxxxx
 // ============================
 (function () {
   const baseEl = document.querySelector('base[href]');
