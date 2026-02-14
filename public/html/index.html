@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web ppp - Dashboard</title>
+    <link rel="icon" href="/-assets/img/favicon.png" type="image/png">
+    <script src="/-assets/js/functions.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #ffffff;
+            --primary: #0071e3; /* Apple-like Blue */
+            --primary-hover: #0077ed;
+            --text-main: #1d1d1f;
+            --text-sub: #86868b;
+            --input-bg: #f5f5f7;
+            --border: #d2d2d7;
+        }
+
+        body {
+            font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 480px;
+        }
+
+        .main-card {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 32px 0;
+            letter-spacing: -0.01em;
+            color: var(--text-main);
+        }
+
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            margin-left: 4px;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            height: 52px;
+            padding: 0 16px;
+            box-sizing: border-box;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background-color: var(--input-bg);
+            font-size: 16px;
+            color: var(--text-main);
+            transition: all 0.2s ease-in-out;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--primary);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+        }
+
+        .btn-go {
+            width: 100%;
+            height: 52px;
+            background-color: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-go:hover {
+            background-color: var(--primary-hover);
+            transform: scale(1.01);
+        }
+
+        .btn-go:active {
+            transform: scale(0.99);
+        }
+
+        .quick-links {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #f2f2f2;
+            display: flex;
+            justify-content: center;
+        }
+
+        .link-card {
+            text-decoration: none;
+            text-align: center;
+            transition: opacity 0.2s;
+        }
+
+        .link-card:hover { opacity: 0.7; }
+
+        .link-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .link-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-sub);
+        }
+
+        footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        footer a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            margin: 0 8px;
+        }
+    </style>
+</head>
+<body>
+                <!-- <div style="
+                  position: fixed;
+                  top: 0;
+                  left: 0;
+                  width: 100vw;
+                  height: 100vh;
+                  backdrop-filter: blur(8px);
+                  -webkit-backdrop-filter: blur(8px);
+                  background: rgba(0,0,0,0.3);
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  color: white;
+                  font-size: 2rem;
+                  z-index: 9999;
+                ">
+                  めんてなう
+                </div> -->
+<div class="container">
+    <div class="main-card">
+        <h1>Web </h1>
+
+        <div class="field-group">
+            <label for="urlInput">Destination URL</label>
+            <input type="text" id="urlInput" placeholder="https://example.com" autocomplete="off">
+        </div>
+
+        <div class="field-group">
+            <label for="uaSelect">View Mode</label>
+            <select id="uaSelect">
+                <option value="default">Default Browser</option>
+                <option value="pc">Desktop Mode</option>
+                <option value="mobile">Mobile Mode</option>
+            </select>
+        </div>
+
+        <button class="btn-go" id="goBtn">匿名でアクセス</button>
+
+        <div class="quick-links">
+            <a href="/youtube" class="link-card">
+                <img src="/-assets/img/youtube.png" alt="YouTube" class="link-icon">
+                <span class="link-label">YouTube</span>
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        <a href="/terms">利用規約</a> | <a href="/privacy">プライバシー</a>
+        <div style="margin-top: 10px;">
+            &copy; 2026 白鷺学園高等学校 <span style="margin-left: 8px; opacity: 0.6;">v1.0.0</span>
+        </div>
+    </footer>
+</div>
+
+<script>
+    const inputEl = document.getElementById('urlInput');
+    const uaSelect = document.getElementById('uaSelect');
+    const goBtn = document.getElementById('goBtn');
+
+    // UA管理
+    const setUAMode = (mode) => {
+        document.cookie = `uaMode=${mode}; path=/; max-age=${60*60*24*30}`;
+    };
+    const getUAMode = () => {
+        const match = document.cookie.match(/uaMode=([^;]+)/);
+        return match ? match[1] : 'default';
+    };
+
+    uaSelect.value = getUAMode();
+    uaSelect.addEventListener('change', () => setUAMode(uaSelect.value));
+
+    // ご指定のロジックをそのまま適用
+    const go = () => {
+        const inputUrl = inputEl.value.trim();
+        console.log('入力値:', inputUrl);
+
+        if (!inputUrl) return;
+
+        // 外部ファイルの関数 makeProxiedUrl を呼び出す
+        if (typeof makeProxiedUrl === 'function') {
+            const newUrl = makeProxiedUrl(inputUrl);
+
+            if (newUrl) {
+                console.log('最終URL:', newUrl);
+                window.location.href = newUrl;
+                console.log('遷移処理実行');
+            } else {
+                console.error('URL変換に失敗しました');
+                alert('URLが無効です。正しく入力されているか確認してください。');
+            }
+        } else {
+            // Fallback: functions.js がない場合
+            window.location.href = "//" + btoa(inputUrl);
+        }
+    };
+
+    goBtn.addEventListener('click', go);
+    inputEl.addEventListener('keypress', e => {
+        if (e.key === 'Enter') go();
+    });
+</script>
+</body>
+</html>
+
+
+

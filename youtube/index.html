@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube</title>
+    <link rel="icon" href="/youtube/img/logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preload" href="/youtube/js/setSW.js" as="script">
+    <script src="/youtube/js/API-URL.js"></script>
+    <style>
+        body { 
+            background-color: #0f0f0f; 
+            color: white; 
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        /* スムーズなフォーカスアニメーション */
+        .search-input:focus {
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="font-sans">
+                                                <!--<div style="
+                                                  position: fixed;
+                                                  top: 0;
+                                                  left: 0;
+                                                  width: 100vw;
+                                                  height: 100vh;
+                                                  backdrop-filter: blur(8px);
+                                                  -webkit-backdrop-filter: blur(8px);
+                                                  background: rgba(0,0,0,0.3);
+                                                  display: flex;
+                                                  justify-content: center;
+                                                  align-items: center;
+                                                  color: white;
+                                                  font-size: 2rem;
+                                                  z-index: 9999;
+                                                ">
+                                                  めんてなう
+                                                </div>-->
+
+    <main class="flex-1 flex flex-col items-center justify-center px-4 -mt-14">
+        
+        <div class="mb-10 cursor-pointer transition-transform active:scale-95" onclick="location.href='/youtube'">
+            <img src="/youtube/img/logo-1.png" alt="YouTube" class="h-16 md:h-20 object-contain">
+        </div>
+
+        <div class="w-full max-w-[640px]">
+            <div class="flex items-stretch">
+                <div class="relative flex-1">
+                    <input 
+                        id="main-search-input" 
+                        type="text" 
+                        placeholder="検索" 
+                        autofocus
+                        class="search-input w-full bg-[#121212] text-white border border-[#303030] rounded-l-full py-3 px-6 text-lg focus:border-blue-500 outline-none transition-all placeholder:text-gray-500"
+                    >
+                </div>
+                <button 
+                    onclick="doSearch()" 
+                    class="bg-[#222222] border border-l-0 border-[#303030] rounded-r-full px-8 hover:bg-[#272727] transition-colors group flex items-center justify-center"
+                    title="検索"
+                >
+                    <svg class="w-6 h-6 text-gray-300 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mt-6 flex flex-wrap justify-center gap-2">
+                <span class="text-xs text-gray-500">キーワード:</span>
+                <button onclick="quickSearch('ゲーム実況')" class="text-xs text-blue-400 hover:underline">ゲーム実況</button>
+                <button onclick="quickSearch('プログラミング')" class="text-xs text-blue-400 hover:underline">プログラミング</button>
+                <button onclick="quickSearch('プロキシ')" class="text-xs text-blue-400 hover:underline">プロキシ</button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="p-6 text-center text-gray-600 text-xs">
+        <p>© 2026 白鷺TUBE<br>ベータ版</p>
+    </footer>
+
+    <script>
+        // 検索実行関数
+        function doSearch() {
+            const input = document.getElementById('main-search-input');
+            const val = input.value.trim();
+            if (val) {
+                // search.htmlへ遷移
+                window.location.href = `/youtube/search.html?q=${encodeURIComponent(val)}`;
+            }
+        }
+
+        // キーワードをクリックして即時検索
+        function quickSearch(word) {
+            window.location.href = `/youtube/search.html?q=${encodeURIComponent(word)}`;
+        }
+
+        // Enterキー入力検知
+        document.getElementById('main-search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                doSearch();
+            }
+        });
+    </script>
+</body>
+</html>

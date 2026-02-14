@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検索結果 - YouTube</title>
+    <link rel="icon" href="/youtube/img/logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/youtube/js/setSW.js"></script>
+    <script src="/youtube/js/API-URL.js"></script>
+    <style>
+        body { background-color: #0f0f0f; color: white; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f0f0f; }
+        ::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- ロゴ -->
+    <nav class="fixed top-0 w-full h-14 bg-[#0f0f0f] flex items-center justify-between px-4 z-50">
+        <div class="flex items-center cursor-pointer" onclick="location.href='/youtube'">
+            <img src="/youtube/img/logo.png" alt="YouTube" class="h-5 md:h-6 object-contain">
+        </div>
+
+        <div class="hidden md:flex flex-1 max-w-[600px] mx-10">
+            <input id="search-input" type="text" placeholder="検索" class="w-full bg-[#121212] border border-[#303030] rounded-l-full px-4 py-1.5 focus:border-blue-500 outline-none text-sm">
+            <button onclick="handleSearch()" class="bg-[#222222] border border-l-0 border-[#303030] rounded-r-full px-5 hover:bg-[#272727]">
+                <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </button>
+        </div>
+    </nav>
+
+
+    <main class="pt-20 px-4 max-w-[1100px] mx-auto">
+        <div id="status" class="mb-6 text-sm text-gray-400">読み込み中...</div>
+        <div id="results-list" class="flex flex-col gap-4"></div>
+    </main>
+
+<script>
+        // 直接のベースURL（API_BASEを消した代わり）
+        const SEARCH_API_ENDPOINT = "https://siatube.wjg.jp/api/search";
+
+        // 1. ページ読み込み時にクエリを見てAPIを叩く
+        async function initSearch() {
+            const params = new URLSearchParams(window.location.search);
+            const q = params.get('q');
+            
+            if (!q) {
+                document.getElementById('status').textContent = "検索ワードを入力してください。";
+                return;
+            }
+        
+            document.getElementById('search-input').value = q;
+            document.getElementById('status').textContent = `「${q}」の検索結果`;
+        
+            try {
+                // 直接URLを指定
+                const res = await fetch(`${SEARCH_API_ENDPOINT}?q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                
+                if (data.results && data.results.length > 0) {
+                    render(data.results);
+                } else {
+                    document.getElementById('status').textContent = "結果が見つかりませんでした。";
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').textContent = "エラーが発生しました。";
+            }
+        }
+        
+        // 2. 描画
+        function render(videos) {
+            const list = document.getElementById('results-list');
+            list.innerHTML = videos.map(v => {
+                // サムネイル階層の解決
+                const thumbUrl = v.thumbnails?.maxres?.url || v.thumbnails?.high?.url || v.thumbnails?.medium?.url || '';
+                const views = v.viewCount ? parseInt(v.viewCount).toLocaleString() + ' 回視聴' : '';
+                
+                return `
+                    <a href="/youtube/watch.html?v=${v.id}" class="flex flex-col sm:flex-row gap-4 hover:bg-[#272727] p-2 rounded-xl transition group">
+                        <div class="relative w-full sm:w-80 aspect-video flex-shrink-0 bg-[#272727] rounded-xl overflow-hidden">
+                            <img src="${thumbUrl}" class="w-full h-full object-cover" alt="${v.title}" loading="lazy">
+                            <span class="absolute bottom-2 right-2 bg-black/80 text-white text-[11px] font-medium px-1.5 py-0.5 rounded">
+                                ${v.duration || ''}
+                            </span>
+                        </div>
+                        
+                        <div class="flex-1 py-1">
+                            <h3 class="font-bold text-base md:text-lg line-clamp-2 text-white group-hover:text-gray-100 leading-snug">
+                                ${v.title}
+                            </h3>
+                            <div class="text-sm text-gray-400 mt-2 flex items-center gap-1">
+                                <span>${v.channel || '不明なチャンネル'}</span>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                <span>${views}</span>
+                                <span>•</span>
+                                <span>${v.publishedAt || ''}</span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function doSearch() {
+            const val = document.getElementById('search-input').value.trim();
+            if (val) {
+                location.href = `/youtube/search.html?q=${encodeURIComponent(val)}`;
+            }
+        }
+
+        document.getElementById('search-input').addEventListener('keypress', e => {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        initSearch();
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

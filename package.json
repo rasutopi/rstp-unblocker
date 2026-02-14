@@ -1,0 +1,22 @@
+{
+  "name": "sonahiruproxy2",
+  "version": "0",
+  "description": "sonahiru",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^2.7.0",
+    "cors": "^2.8.6"
+  },
+  "author": "Sonahiru Team",
+  "license": "MIT",
+  "keywords": []
+}
+

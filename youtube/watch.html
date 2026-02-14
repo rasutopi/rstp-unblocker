@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <link rel="icon" href="/youtube/img/logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="/youtube/js/setSW.js"></script>
+    <script src="/youtube/js/API-URL.js"></script>
+    <style>
+        :root { --yt-red: #ff0000; }
+        body { background-color: #0f0f0f; color: white; }
+        .description-box { white-space: pre-wrap; word-break: break-word; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f0f0f; }
+        ::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 10px; }
+
+        /* --- Custom Player Styles --- */
+        .video-container {
+            position: relative;
+            width: 100%;
+            /* height: 100%; を削除し、アスペクト比を強制 */
+            aspect-ratio: 16 / 9;
+            background: #000;
+            overflow: hidden;
+            border-radius: 0.75rem; /* rounded-xl */
+            /* Flexアイテムとして変形しないように固定 */
+            flex-shrink: 0; 
+        }
+
+        video { 
+            width: 100%; 
+            height: 100%; 
+            display: block; 
+            /* 動画自体の比率を維持して黒帯を入れる */
+            object-fit: contain; 
+        }
+
+        /* スキップアニメーション円 */
+        .skip-label {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.6);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            pointer-events: none;
+            backdrop-filter: blur(2px);
+            animation: fadeOut 0.6s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .skip-left { left: 20%; }
+        .skip-right { left: 80%; }
+        .skip-label i { font-size: 32px; color: white; }
+        .skip-label span { color: white; font-size: 12px; font-weight: bold; margin-top: 4px; }
+
+        /* コントロールバー背景 */
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.5), transparent);
+            padding: 0 16px 10px; /* px-4 pb-2 */
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        /* マウスホバー、ドラッグ中、一時停止中、スマホでタップした直後は表示 */
+        .video-container:hover .controls, 
+        .video-container.dragging .controls,
+        .video-container.paused .controls { opacity: 1; }
+
+        /* シークバー */
+        .timeline-area { 
+            height: 16px; 
+            width: 100%; 
+            display: flex; 
+            align-items: center; 
+            cursor: pointer; 
+            touch-action: none;
+        }
+        .timeline-bar { 
+            position: relative; 
+            height: 3px; 
+            width: 100%; 
+            background: rgba(255,255,255,0.3); 
+            transition: height 0.1s; 
+        }
+        .timeline-area:hover .timeline-bar, 
+        .video-container.dragging .timeline-bar { height: 5px; }
+
+        /* バッファバー */
+        .progress-buffer {
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+            background: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        /* 再生位置バー */
+        .progress-filled { 
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
+            background: var(--yt-red); 
+        }
+        .progress-filled::after {
+            content: ""; position: absolute; right: -6px; top: 50%; transform: translateY(-50%) scale(0);
+            width: 13px; height: 13px; background: var(--yt-red); border-radius: 50%; 
+            transition: transform 0.1s;
+        }
+        .timeline-area:hover .progress-filled::after, 
+        .video-container.dragging .progress-filled::after { transform: translateY(-50%) scale(1); }
+
+        /* ボタン類 */
+        .buttons-row { display: flex; justify-content: space-between; align-items: center; color: white; }
+        .left-controls, .right-controls { display: flex; align-items: center; gap: 10px; }
+        
+        .ctrl-btn { 
+            background: none; border: none; color: white; cursor: pointer; 
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .ctrl-btn:hover { background: rgba(255,255,255,0.1); }
+        .material-icons { font-size: 28px; }
+
+        /* 音量スライダー */
+        .volume-container { display: flex; align-items: center; width: 0; overflow: hidden; transition: width 0.3s; }
+        .volume-wrapper:hover .volume-container, .volume-container:focus-within { width: 80px; }
+        .volume-wrapper { display: flex; align-items: center; }
+        
+        input[type=range].vol-slider {
+            width: 70px; height: 3px; cursor: pointer; accent-color: white; margin-left: 8px;
+        }
+
+        .time-display { font-size: 13px; font-family: Roboto, Arial, sans-serif; margin-left: 5px; }
+
+        /* ローディングスピナー */
+        .loading-spinner {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white; border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+            z-index: 10;
+        }
+        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <nav class="fixed top-0 w-full h-14 bg-[#0f0f0f] flex items-center justify-between px-4 z-50 border-b border-[#272727]">
+        <div class="flex items-center cursor-pointer" onclick="location.href='/youtube'">
+            <img src="/youtube/img/logo.png" alt="YouTube" class="h-5 md:h-6 object-contain">
+        </div>
+
+        <div class="hidden md:flex flex-1 max-w-[600px] mx-10">
+            <input 
+                id="search-input" 
+                type="text" 
+                placeholder="検索" 
+                class="w-full bg-[#121212] border border-[#303030] rounded-l-full px-4 py-1.5 focus:border-blue-500 outline-none text-white text-sm"
+                onkeydown="if(event.key === 'Enter') handleSearch()"
+            >
+            <button onclick="handleSearch()" class="bg-[#222222] border border-l-0 border-[#303030] rounded-r-full px-5 hover:bg-[#272727]">
+                <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="w-8"></div>
+    </nav>
+
+    <main id="content" class="pt-20 px-4 md:px-8 max-w-[1700px] mx-auto flex flex-col lg:flex-row items-start gap-6 opacity-1 transition-opacity duration-500">
+        
+        <div class="flex-1 min-w-0 w-full">
+            <div class="video-container shadow-2xl" id="player-container">
+                <video id="video-player" preload="auto" playsinline></video>
+                <audio id="audio-player" preload="auto"></audio>
+                
+                <div class="loading-spinner" id="spinner"></div>
+
+                <div class="skip-label skip-left" id="label-left"><i class="material-icons">fast_rewind</i><span>-10秒</span></div>
+                <div class="skip-label skip-right" id="label-right"><i class="material-icons">fast_forward</i><span>+10秒</span></div>
+
+                <div class="controls" id="controls">
+                    <div class="timeline-area" id="timeline">
+                        <div class="timeline-bar">
+                            <div class="progress-buffer" id="buffer-bar"></div>
+                            <div class="progress-filled" id="progress-bar"></div>
+                        </div>
+                    </div>
+
+                    <div class="buttons-row">
+                        <div class="left-controls">
+                            <button class="ctrl-btn" id="play-btn"><i class="material-icons">play_arrow</i></button>
+                            
+                            <div class="volume-wrapper">
+                                <button class="ctrl-btn" id="vol-btn"><i class="material-icons">volume_up</i></button>
+                                <div class="volume-container">
+                                    <input type="range" class="vol-slider" id="volume-slider" min="0" max="1" step="0.05" value="1">
+                                </div>
+                            </div>
+                            
+                            <div class="time-display">
+                                <span id="current-time">0:00</span> / <span id="duration-time">0:00</span>
+                            </div>
+                        </div>
+
+                        <div class="right-controls">
+                            <button class="ctrl-btn" id="fs-btn"><i class="material-icons">fullscreen</i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h1 id="video-title" class="text-xl font-bold mt-4 leading-7">Loading...</h1>
+
+            <div class="flex items-center gap-3 py-4 border-b border-[#303030] mb-4">
+                <div id="author-icon" class="w-10 h-10 rounded-full bg-gray-700 overflow-hidden flex items-center justify-center font-bold text-lg select-none">
+                    <img id="author-thumb" src="" alt="" class="w-full h-full hidden object-cover">
+                    <span id="author-initial">?</span>
+                </div>
+                <div>
+                    <p id="author-name" class="font-bold text-md leading-tight hover:text-gray-300 cursor-pointer"></p>
+                    <p id="subscriber-count" class="text-gray-400 text-xs mt-1">読み込み中...</p>
+                </div>
+                <button class="ml-auto bg-white text-black px-4 py-2 rounded-full font-medium text-sm hover:bg-gray-200">登録</button>
+            </div>
+
+            <div class="bg-[#272727] rounded-xl p-4 text-sm cursor-pointer hover:bg-[#303030] transition" id="desc-container">
+                <div class="font-bold mb-2 flex gap-3 text-gray-100">
+                    <span id="view-count">0</span> 回視聴
+                    <span id="publish-date">----/--/--</span>
+                </div>
+                <div id="video-description" class="description-box text-gray-300 leading-relaxed text-[13px] max-h-24 overflow-hidden relative transition-all duration-300"></div>
+                <button id="show-more" class="mt-2 font-bold text-gray-400 hover:text-white">...もっと見る</button>
+            </div>
+            <div class="mt-6 border-t border-[#303030] pt-4">
+                <h3 class="text-xl font-bold mb-4">コメント</h3>
+                <div id="comments-container" class="space-y-6">
+                    <p class="text-gray-400">コメントを読み込み中...</p>
+                </div>
+            </div>
+        </div>
+        <!--コメ-->
+        <div class="w-full lg:w-[400px] flex-shrink-0">
+            <h2 class="font-bold mb-4 text-gray-200 px-1">関連動画</h2>
+            <div id="related-list" class="flex flex-col gap-3">
+                </div>
+        </div>
+    </main>
+    <footer><p>Powered by しあTUBE</p></footer>
+    <script src="/youtube/js/ytplay.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
