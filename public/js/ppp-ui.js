@@ -1,6 +1,6 @@
 // ============================
 // プロキシ用UI
-// Copyright 2026 Team Sonahiru
+// Copyright 2026 Team xxxxxxx
 // ============================
 
 // body がまだ無ければ待つ
