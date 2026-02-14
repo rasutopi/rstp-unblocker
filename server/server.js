@@ -422,7 +422,7 @@ app.get('/login', (req, res) => {
         }
     }
     // 未ログインなら普通にログイン画面
-    return res.redirect('/');
+    res.sendFile(path.join(__dirname, '../public/html/login.html'));
 });
 // API: ログイン
 app.post('/api/login', (req, res) => {
