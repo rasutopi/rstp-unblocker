@@ -1,6 +1,6 @@
 // ============================
 // DOMの書き換え
-// Copyright 2026 Team Sonahiru
+// Copyright 2026 Team xxxxxxx
 // ============================
 
 (() => {
@@ -119,3 +119,4 @@ document.addEventListener('formdata', (e) => {
     e.formData.set('__p_origin', encodeURL(origin));
   }
 });
+
