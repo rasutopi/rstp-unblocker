@@ -1,6 +1,6 @@
 // ============================
 // Cookieをhookするjs
-// Copyright 2026 Team Sonahiru
+// Copyright 2026 Team xxxxxxx
 // ============================
 
 // ===== 生 cookie API を退避 =====
