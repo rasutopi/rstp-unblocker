@@ -81,7 +81,7 @@ function requireAuth(req, res, next) {
 }
 // 認証を有効化
 app.use((req, res, next) => {
-    const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', 'static-p'];
+    const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', '/static-p/api'];
 
     const isOpenPrefix = openPrefixes.some(p => req.path.startsWith(p));
     const isExactRoot = req.path === '/' && req.originalUrl === '/';
@@ -468,6 +468,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
