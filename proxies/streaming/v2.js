@@ -45,7 +45,7 @@ router.all('/', (req, res) => {
       const redirectUrl = proxyRes.headers.location;
   
       const wrapped =
-        `/?url=${encodeURIComponent(redirectUrl)}`;
+        `?url=${encodeURIComponent(redirectUrl)}`;
   
       console.log('Redirect →', redirectUrl);
   
