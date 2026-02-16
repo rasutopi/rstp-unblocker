@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadVideoData(videoId);
 
     // --- プレイヤーロジック ---
-// --- プレイヤーロジック ---
 
     function initPlayer() {
         const { video, audio, playBtn, volBtn, volSlider, timeline, container, fsBtn } = elements;
@@ -303,8 +302,12 @@ const stream = await streamRes.json();
             // videourlオブジェクトの中から、利用可能な最高の画質を探す
             for (const q of qualityOrder) {
                 if (stream.videourl[q]) {
-                    vUrl = stream.videourl[q].video.url;
-                    aUrl = stream.videourl[q].audio.url;
+                    // ストリーミングを中継器にかける
+                    const wrap = (url) =>
+                      `/streaming-p/v1?url=${encodeURIComponent(url)}`;
+                    vUrl = wrap(stream.videourl[q].video.url);
+                    aUrl = wrap(stream.videourl[q].audio.url);
+                    
                     console.log(`Selected Quality: ${q}`);
                     break; 
                 }
