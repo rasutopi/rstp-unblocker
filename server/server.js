@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const proxyRouter = require("../static-proxy");
 
 require('dotenv').config();
 
@@ -407,7 +408,7 @@ app.get('/ServiceWorker.js', (req, res) => {
 // ようつべ
 app.use('/youtube', express.static(path.join(__dirname, '../youtube')));
 // static proxy
-app.use('/static-p', express.static(path.join(__dirname, '../static-proxy')));
+app.use("/static-p/api/v1", proxyRouter);
 
 // ログイン画面
 app.get('/login', (req, res) => {
@@ -467,6 +468,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
