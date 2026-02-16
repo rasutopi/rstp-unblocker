@@ -406,6 +406,8 @@ app.get('/ServiceWorker.js', (req, res) => {
 });
 // ようつべ
 app.use('/youtube', express.static(path.join(__dirname, '../youtube')));
+// static proxy
+app.use('/static-p', express.static(path.join(__dirname, '../static-proxy')));
 
 // ログイン画面
 app.get('/login', (req, res) => {
@@ -465,6 +467,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
