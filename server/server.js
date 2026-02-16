@@ -6,7 +6,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const proxyRouter1 = require("../proxies/static/v1");
-const proxyRouter2 = require("../proxies/streaming/v1");
+const proxyRouter2 = require("../proxies/streaming/v2");
 
 require('dotenv').config();
 
@@ -409,9 +409,9 @@ app.get('/ServiceWorker.js', (req, res) => {
 // ようつべ
 app.use('/youtube', express.static(path.join(__dirname, '../youtube')));
 // static proxy
-app.use("/static-p/v1", proxyRouter1);
+app.use("/static-p/r", proxyRouter1);
 // streaming proxy
-app.use("/streaming-p/v1", proxyRouter2);
+app.use("/streaming-p/r", proxyRouter2);
 
 // ログイン画面
 app.get('/login', (req, res) => {
@@ -471,5 +471,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
