@@ -304,7 +304,7 @@ const stream = await streamRes.json();
                 if (stream.videourl[q]) {
                     // ストリーミングを中継器にかける
                     const wrap = (url) =>
-                      `/streaming-p/v1?url=${encodeURIComponent(url)}`;
+                      `/streaming-p/r?url=${encodeURIComponent(url)}`;
                     vUrl = wrap(stream.videourl[q].video.url);
                     aUrl = wrap(stream.videourl[q].audio.url);
                     
