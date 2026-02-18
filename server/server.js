@@ -81,7 +81,7 @@ function requireAuth(req, res, next) {
     }
 }
 // 認証を有効化
-app.use((req, res, next) => {]
+app.use((req, res, next) => {
     // 認証対象外
     const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', '/static-p/r'];
 
@@ -478,6 +478,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
