@@ -38,38 +38,30 @@
     </main>
 
 <script>
-        // 直接のベースURL（API_BASEを消した代わり）
-        const SEARCH_API_ENDPOINT = "https://siatube.wjg.jp/api/search";
-
-        // 1. ページ読み込み時にクエリを見てAPIを叩く
-        async function initSearch() {
-            const params = new URLSearchParams(window.location.search);
-            const q = params.get('q');
-            
-            if (!q) {
-                document.getElementById('status').textContent = "検索ワードを入力してください。";
-                return;
-            }
+        // API候補を配列で持つ
+        const SEARCH_API_ENDPOINTS = [
+            "https://siatube.wjg.jp/api/search",
+            "https://example.com/api/search"
+        ];
         
-            document.getElementById('search-input').value = q;
-            document.getElementById('status').textContent = `「${q}」の検索結果`;
+        async function fetchWithFallback(q) {
+            for (const endpoint of SEARCH_API_ENDPOINTS) {
+                try {
+                    const res = await fetch(`${endpoint}?q=${encodeURIComponent(q)}`);
+                    
+                    if (!res.ok) throw new Error("Response not ok");
         
-            try {
-                // 直接URLを指定
-                const res = await fetch(`${SEARCH_API_ENDPOINT}?q=${encodeURIComponent(q)}`);
-                const data = await res.json();
-                
-                if (data.results && data.results.length > 0) {
-                    render(data.results);
-                } else {
-                    document.getElementById('status').textContent = "結果が見つかりませんでした。";
+                    const data = await res.json();
+                    return data; // 成功したら即返す
+                } catch (err) {
+                    console.warn(`API失敗: ${endpoint}`, err);
+                    // 次のAPIへ
                 }
-            } catch (err) {
-                console.error(err);
-                document.getElementById('status').textContent = "エラーが発生しました。";
             }
-        }
         
+            throw new Error("全てのAPIが失敗しました");
+        }
+                
         // 2. 描画
         function render(videos) {
             const list = document.getElementById('results-list');
@@ -121,6 +113,7 @@
 </body>
 
 </html>
+
 
 
 
