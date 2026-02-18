@@ -1,3 +1,4 @@
+// サーバーです。
 const express = require('express');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
@@ -56,7 +57,6 @@ function storeSetCookie(fetchRes, resToClient, targetUrl) {
         const rawName = pair.slice(0, eq).trim();
         const value = pair.slice(eq + 1).trim();
 
-        // ★ ここで安全化
         const safeName = safeCookieName(rawName, host);
 
         resToClient.cookie(safeName, value, {
@@ -81,7 +81,8 @@ function requireAuth(req, res, next) {
     }
 }
 // 認証を有効化
-app.use((req, res, next) => {
+app.use((req, res, next) => {]
+    // 認証対象外
     const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', '/static-p/r'];
 
     const isOpenPrefix = openPrefixes.some(p => req.path.startsWith(p));
@@ -95,7 +96,7 @@ app.use((req, res, next) => {
 });
 
 
-// ルーティング
+// ルーティング（一部修正にChatGPT、Geminiを使用）
 app.all('/*', async (req, res, next) => {
     try {
         const encodedUrl = req.query.__p_origin;
@@ -338,12 +339,10 @@ app.all('/*', async (req, res, next) => {
 
             const fullUrl = fetchUrl; // fetch に渡した URL が正しい
             $('body').attr('data-origin-url', fullUrl);
-            // mainJSを追加する
             const protocol = req.headers['x-forwarded-proto'] || req.protocol;
             const host = req.headers.host;
-            // --- インジェクション用のベースURLを決定 ---
             let assetBase;
-            // クエリに ppp_origin があればそれを使う。なければ自サーバーのパスを使う
+            // クエリに ppp_origin があればそれを使う。なければ自サーバーのパスを使う（正直いらない）
             if (req.query.ppp_origin) {
                 assetBase = req.query.ppp_origin;
                 // 末尾のスラッシュを削除して整形（任意）
@@ -353,6 +352,7 @@ app.all('/*', async (req, res, next) => {
                 const host = req.headers.host;
                 assetBase = `${protocol}://${host}/-assets`;
             }
+            // アセット類を突っ込む
             $('head').prepend(`<script src="${assetBase}/js/main.js"></script>`);
             $('head').prepend(`<script src="${assetBase}/js/functions.js"></script>`);
             $('head').prepend(`<script src="${assetBase}/js/location-hook.js"></script>`);
@@ -378,17 +378,21 @@ app.all('/*', async (req, res, next) => {
 
 // プロキシ用の静的ファイルを配信する
 app.use('/-assets', express.static('public'));
+// トップページの条件分岐
 app.get('/', (req, res) => {
     const host = req.headers.host;
     if (host.includes('shirasagi-hs')) {
+        // "shirasagi-hs"が含まれるなら
         res.sendFile(path.join(__dirname, '../public/html/other/shirasagi.html'));
     } else if (host.includes('kobekyo')) {
+        // "kobekyo"が含まれるなら
         res.sendFile(path.join(__dirname, '../public/html/other/kobekyo.html'));
     } else {
+        // 条件外ならshirasagi.htmlを返却
         res.sendFile(path.join(__dirname, '../public/html/other/shirasagi.html'));
     }
 });
-
+// プロキシメインページ
 app.get('/p', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/html/index.html'));
 });
@@ -398,36 +402,39 @@ app.get('/terms', (req, res) => {
 app.get('/privacy', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/html/privacy.html'));
 });
+// アップデートログを配信
 app.get('/update', (req, res) => {
     res.type('text/plain');
     res.sendFile(path.join(__dirname, '../public/UPDATELOG.txt'));
 });
+// サービスワーカーを配信
 app.get('/ServiceWorker.js', (req, res) => {
     res.set('Service-Worker-Allowed', '/');
     res.sendFile(path.join(__dirname, '../public/js/ServiceWorker.js'));
 });
-// ようつべ
+// ようつべ静的ルート
 app.use('/youtube', express.static(path.join(__dirname, '../youtube')));
-// static proxy
+
+// static proxy（kobekyoで使用、ログイン不要）
 app.use("/static-p/r", proxyRouter1);
-// streaming proxy
+// streaming proxy（youtube用、ログイン必須）
 app.use("/streaming-p/r", proxyRouter2);
 
-// ログイン画面
+// ログイン画面を表示
 app.get('/login', (req, res) => {
     const token = req.cookies.auth;
     if (token) {
         try {
             jwt.verify(token, process.env.JWT_SECRET);
-            // すでにログイン済み
+            // すでにログイン済みの場合
             const redirectTo = req.query.re || '/p';
             return res.redirect(redirectTo);
         } catch {
-            // トークン壊れてる場合は消す
+            // トークンが壊れてる場合は削除
             res.clearCookie('auth');
         }
     }
-    // 未ログインなら普通にログイン画面
+    // 未ログインの場合はログイン画面を表示する
     res.sendFile(path.join(__dirname, '../public/html/login.html'));
 });
 // API: ログイン
@@ -471,6 +478,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
