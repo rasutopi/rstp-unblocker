@@ -1,1 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スタディ・アーカイブ | 中学校全教科の要点まとめ</title>
+    <style>
+        /* カラーパレット：目に優しく、かつ教科ごとに色分け */
+        :root {
+            --math: #ff5252;
+            --english: #448aff;
+            --science: #4caf50;
+            --social: #ff9800;
+            --kokugo: #9c27b0;
+            --bg-body: #f4f7f6;
+            --text-main: #333;
+        }
 
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.7;
+        }
+
+        /* ヘッダー */
+        header {
+            background: #fff;
+            border-bottom: 3px solid #ddd;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .site-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0;
+            color: #333;
+        }
+
+        .site-subtitle {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* メインレイアウト */
+        .wrapper {
+            max-width: 1200px;
+            margin: 20px auto;
+            display: grid;
+            grid-template-columns: 240px 1fr 280px;
+            gap: 20px;
+            padding: 0 15px;
+        }
+
+        /* サイドナビ */
+        .side-nav {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            height: fit-content;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .nav-group h4 {
+            margin: 15px 0 5px;
+            border-bottom: 2px solid #eee;
+            font-size: 0.95rem;
+        }
+
+        .nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-list li {
+            padding: 8px 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .nav-list li:hover { background: #f0f0f0; }
+
+        /* 中央コンテンツ */
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-body { padding: 20px; }
+
+        /* 教科別スタイル */
+        .math { background-color: var(--math); }
+        .english { background-color: var(--english); }
+        .science { background-color: var(--science); }
+
+        /* 公式・暗記ボックス */
+        .memorize-box {
+            background: #fff9c4;
+            border: 2px dashed #fbc02d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        /* 右パネル */
+        .summary-panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #eee;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 5px;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 1000px) {
+            .wrapper { grid-template-columns: 1fr; }
+            .side-nav, .summary-panel { display: none; }
+        }
+      a,a:hover,a:visited{
+    color: inherit;
+}
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 class="site-title">📚 スタディ・アーカイブ</h1>
+    <div class="site-subtitle">会員登録不要・全教科の要点まとめライブラリ<br>このサイトはデモ版です。現在作成中です...</div>
+</header>
+
+<div class="wrapper">
+    <aside class="side-nav">
+        <div class="nav-group">
+            <h4>数学</h4>
+            <ul class="nav-list">
+                <li>正の数・負の数</li>
+                <li>方程式の解き方</li>
+                <li>関数の基礎</li>
+            </ul>
+        </div>
+        <div class="nav-group">
+            <h4>英語</h4>
+            <ul class="nav-list">
+                <li>3単現のs</li>
+                <li>現在進行形</li>
+                <li>不定詞の3用法</li>
+            </ul>
+        </div>
+        <div class="nav-group">
+            <h4>理科</h4>
+            <ul class="nav-list">
+                <li>植物のつくり</li>
+                <li>原子と分子</li>
+                <li>光の反射</li>
+            </ul>
+        </div>
+    </aside>
+
+    <main class="main-panel">
+        
+        <section class="info-card">
+            <div class="card-header math">
+                <span>数学 / 中1</span>
+                <span>方程式の基本</span>
+            </div>
+            <div class="card-body">
+                <h3>「移項（いこう）」をマスターしよう</h3>
+                <p>イコール（＝）をまたいで数字や文字を動かすときは、<strong>符号が逆になる</strong>のが最大のルールです！</p>
+                <div class="memorize-box">
+                    <strong>例題： $x + 5 = 12$</strong><br>
+                    $+5$ を右側に移すと $-5$ になる。<br>
+                    $x = 12 - 5$<br>
+                    $x = 7$
+                </div>
+            </div>
+        </section>
+
+        <section class="info-card">
+            <div class="card-header english">
+                <span>英語 / 中2</span>
+                <span>助動詞 must と have to</span>
+            </div>
+            <div class="card-body">
+                <h3>「〜しなければならない」の使い分け</h3>
+                <p>肯定文ではほぼ同じ意味ですが、否定文になると意味が全く変わるので注意！</p>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <tr style="background: #e3f2fd;">
+                        <th style="padding: 10px; border: 1px solid #ccc;">言葉</th>
+                        <th style="padding: 10px; border: 1px solid #ccc;">否定形（〜してはいけない）</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ccc;">must not</td>
+                        <td style="padding: 10px; border: 1px solid #ccc;">強い禁止（ダメ！）</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ccc;">don't have to</td>
+                        <td style="padding: 10px; border: 1px solid #ccc;">不必要（しなくていいよ）</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <section class="info-card">
+            <div class="card-header science">
+                <span>理科 / 中3</span>
+                <span>イオンの成り立ち</span>
+            </div>
+            <div class="card-body">
+                <h3>陽イオンと陰イオン</h3>
+                <p>原子が電子を放出したり、受け取ったりすることで電気を帯びた粒子です。</p>
+                <ul>
+                    <li><strong>陽イオン</strong>：電子を失って（ーが減って）＋になる。</li>
+                    <li><strong>陰イオン</strong>：電子を受け取って（ーが増えて）ーになる。</li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <aside class="summary-panel">
+        <h3>💡 学習のヒント</h3>
+        <p style="font-size: 0.9rem;">
+            このサイトは、教科書の内容をギュッと凝縮してまとめています。
+            テスト前の最終確認や、わからない言葉が出てきたときの名辞辞典として使ってください。
+        </p>
+        
+        <hr>
+
+        <h3>🔍 よく検索されるキーワード</h3>
+        <div style="line-height: 2;">
+            <span class="badge">#因数分解</span>
+            <span class="badge">#比較級</span>
+            <span class="badge">#光合成</span>
+            <span class="badge">#三権分立</span>
+            <span class="badge">#古典文法</span>
+            <a href="/p"><span class="badge">#二次方程式</span></a>
+        </div>
+
+        <div style="margin-top: 30px; padding: 15px; background: #fdf2f2; border-radius: 8px;">
+            <h4 style="margin: 0; color: #d32f2f;">⚠️ 勉強の落とし穴</h4>
+            <p style="font-size: 0.8rem;">「わかったつもり」が一番危険！解説を読んだら、自分の手で教科書のワークを1問解いてみることが大切です。</p>
+        </div>
+    </aside>
+</div>
+
+</body>
+</html>
