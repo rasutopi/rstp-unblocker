@@ -30,6 +30,49 @@ function getUserAgent(mode, clientUA) {
     }
 }
 
+// ローカルアドレスの指定をチェックする関数（ChatGPT使用）
+function isSafeOrigin(url) {
+    try {
+        const parsed = new URL(url);
+        const host = parsed.hostname;
+
+        // ホスト名が localhost かループバック系
+        if (
+            host === 'localhost' ||
+            host === '127.0.0.1' ||
+            host === '::1' ||
+            host === '0.0.0.0'
+        ) {
+            return false;
+        }
+
+        // IPv4 アドレスかどうか
+        const ipv4Match = host.match(/^(\d{1,3}\.){3}\d{1,3}$/);
+        if (ipv4Match) {
+            const parts = host.split('.').map(Number);
+
+            // プライベートネットワーク
+            if (
+                parts[0] === 10 ||                                        // 10.0.0.0/8
+                (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || // 172.16.0.0/12
+                (parts[0] === 192 && parts[1] === 168) ||                 // 192.168.0.0/16
+                (parts[0] === 169 && parts[1] === 254) ||                 // リンクローカル 169.254.0.0/16
+                (parts[0] === 127)                                         // 127.0.0.0/8 ループバック
+            ) {
+                return false;
+            }
+        }
+
+        // IPv6 リンクローカル / ループバック
+        if (host.startsWith('fe80') || host === '::1') return false;
+
+        // ここで外部アクセスだけ通す
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 function decodeURL(encoded) {
   return Buffer.from(encoded, 'base64url').toString();
 }
@@ -103,7 +146,10 @@ app.all('/*', async (req, res, next) => {
         if (!encodedUrl) return next();
 
         const originalUrl = decodeURL(encodedUrl);
-
+        // 禁止URLチェック
+        if (!isSafeOrigin(originalUrl)) {
+            return res.status(403).sendFile(path.join(__dirname, '../public/html/403.html'));
+        }
         // ブラウザのパスとクエリを取得して originalUrl に結合
         const protocol = req.headers['x-forwarded-proto'] || req.protocol;
         const browserUrl = new URL(req.originalUrl, `${protocol}://${req.headers.host}`);
@@ -478,6 +524,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
