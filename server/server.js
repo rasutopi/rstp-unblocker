@@ -434,8 +434,8 @@ app.get('/', (req, res) => {
         // "kobekyo"が含まれるなら
         res.sendFile(path.join(__dirname, '../public/html/other/kobekyo.html'));
     } else {
-        // 条件外ならshirasagi.htmlを返却
-        res.sendFile(path.join(__dirname, '../public/html/other/shirasagi.html'));
+        // 条件外ならonetime.htmlを返却
+        res.sendFile(path.join(__dirname, '../public/html/other/onetime.html'));
     }
 });
 // プロキシメインページ
@@ -524,6 +524,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
