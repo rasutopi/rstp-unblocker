@@ -22,6 +22,21 @@ npm install
 ```
 を実行して依存関係をインストールしてください。
 
+---
+
+## 詳細
+
+### staticProxy、staticProxyについて
+
+static v1とv3はブラウザからログインなしで使えます。
+kobekyoのために作りました。
+v1はfetch、v3はcloudflare対応です。
+v2はクラッシュしたので無効化してあります。
+
+streamProxyはメモリの都合上、使用は推奨しません。
+
+コメントアウトしただけなので使いたければどうぞ。
+
 ## サーバー起動
 
 ```bash
@@ -42,7 +57,7 @@ http://localhost:3000
 
 ---
 
-## 必須設定
+## 設定
 
 環境変数で設定してください。
 
@@ -55,9 +70,12 @@ http://localhost:3000
 例：
 
 ```bash
+必須
 JWT_SECRET=abcdefghijklmsopqrstuvwxyz
 LOGIN_USER=username
 LOGIN_PASS=1234
+任意
+PORT=3000
 ```
 
 ---

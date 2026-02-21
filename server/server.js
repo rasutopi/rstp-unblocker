@@ -6,13 +6,15 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const proxyRouter1 = require("../proxies/static/v2");
-const proxyRouter2 = require("../proxies/streaming/v1");
+const staticProxyRouterV1 = require("../proxies/static/v1");
+const staticProxyRouterV2 = require("../proxies/static/v2");
+const staticProxyRouterV3 = require("../proxies/static/v3");
+const streamProxyRouterV1 = require("../proxies/streaming/v1");
 
 require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cookieParser());
 app.use(express.json());
@@ -126,7 +128,7 @@ function requireAuth(req, res, next) {
 // 認証を有効化
 app.use((req, res, next) => {
     // 認証対象外
-    const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', '/static-p/r'];
+    const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', '/static-p/v1', '/static-p/v2'];
 
     const isOpenPrefix = openPrefixes.some(p => req.path.startsWith(p));
     const isExactRoot = req.path === '/' && req.originalUrl === '/';
@@ -461,10 +463,15 @@ app.get('/ServiceWorker.js', (req, res) => {
 // ようつべ静的ルート
 app.use('/youtube', express.static(path.join(__dirname, '../youtube')));
 
-// static proxy（kobekyoで使用、ログイン不要）
-app.use("/static-p/r", proxyRouter1);
-// streaming proxy（youtube用、ログイン必須）
-app.use("/streaming-p/r", proxyRouter2);
+// --- static proxy（kobekyoで使用、ログイン不要） ---
+app.use("/static-p/v1", staticProxyRouterV1);    // 通常
+// [WARNING] 有効化してもいいですが慎重にお願いします。クラッシュしますよ。
+// app.use("/static-p/v2", staticProxyRouterV2);    // CF回避可能
+app.use("/static-p/v3", staticProxyRouterV3);    // CF回避可能
+
+// --- streaming proxy（youtube用、ログイン必須） ---
+// [WARNING] 有効化してもいいですが慎重にお願いします。帯域があっという間になくなりますよ。 
+// app.use("/streaming-p/v1", streamProxyRouterV1);
 
 // ログイン画面を表示
 app.get('/login', (req, res) => {

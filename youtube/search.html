@@ -47,14 +47,22 @@
             "https://siatube.wjg.jp/api/search",
             "https://siawaseok.duckdns.org/api/search"
         ];
-        
+
+        // プロキシ経由でURLを生成
+        function buildProxyUrl(url) {
+            return `/static-p/v1?url=${encodeURIComponent(url)}`;
+        }
+
         async function fetchWithFallback(q) {
             for (const endpoint of SEARCH_API_ENDPOINTS) {
                 try {
-                    const res = await fetch(`${endpoint}?q=${encodeURIComponent(q)}`);
-                    
+                    const targetUrl = `${endpoint}?q=${encodeURIComponent(q)}`;
+                    const proxyUrl = buildProxyUrl(targetUrl);
+
+                    const res = await fetch(proxyUrl);
+
                     if (!res.ok) throw new Error("Response not ok");
-        
+
                     const data = await res.json();
                     return data; // 成功したら即返す
                 } catch (err) {
@@ -62,7 +70,7 @@
                     // 次のAPIへ
                 }
             }
-        
+
             throw new Error("全てのAPIが失敗しました");
         }
     
