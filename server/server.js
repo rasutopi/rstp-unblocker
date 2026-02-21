@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
-const proxyRouter1 = require("../proxies/static/v1");
+const proxyRouter1 = require("../proxies/static/v2");
 const proxyRouter2 = require("../proxies/streaming/v1");
 
 require('dotenv').config();
@@ -524,6 +524,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
