@@ -8,7 +8,8 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const staticProxyRouterV1 = require("../proxies/static/v1");
 const staticProxyRouterV2 = require("../proxies/static/v2");
-const staticProxyRouterV3 = require("../proxies/static/v3");
+// const staticProxyRouterV3 = require("../proxies/static/v3");
+const staticProxyRouterV4 = require("../proxies/static/v4");
 const streamProxyRouterV1 = require("../proxies/streaming/v1");
 
 require('dotenv').config();
@@ -467,7 +468,8 @@ app.use('/youtube', express.static(path.join(__dirname, '../youtube')));
 app.use("/static-p/v1", staticProxyRouterV1);    // 通常
 // [WARNING] 有効化してもいいですが慎重にお願いします。クラッシュしますよ。
 // app.use("/static-p/v2", staticProxyRouterV2);    // CF回避可能
-app.use("/static-p/v3", staticProxyRouterV3);    // CF回避可能
+// app.use("/static-p/v3", staticProxyRouterV3);    // CF回避可能
+app.use("/static-p/v4", staticProxyRouterV4);    // CF回避可能
 
 // --- streaming proxy（youtube用、ログイン必須） ---
 // [WARNING] 有効化してもいいですが慎重にお願いします。帯域があっという間になくなりますよ。 
@@ -531,6 +533,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
