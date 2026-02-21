@@ -1,6 +1,6 @@
 const express = require("express");
-const router = express.Router();
 const cloudscraper = require("cloudscraper");
+const router = express.Router();
 
 router.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -20,15 +20,19 @@ router.get("/", async (req, res) => {
   try {
     const response = await cloudscraper.get({
       uri: url,
-      encoding: null, // ← バイナリ取得するために重要
+      encoding: null, // ← バイナリ対応
       resolveWithFullResponse: true,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+      },
     });
 
     const contentType =
       response.headers["content-type"] || "application/octet-stream";
 
     res.setHeader("Content-Type", contentType);
-    res.status(200).send(response.body);
+    res.status(response.statusCode).send(response.body);
   } catch (err) {
     res.status(500).send(`Error fetching ${url}: ${err.message}`);
   }
