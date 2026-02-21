@@ -30,8 +30,9 @@ npm install
 
 static v1とv3はブラウザからログインなしで使えます。
 kobekyoのために作りました。
-v1はfetch、v3はcloudflare対応です。
-v2はクラッシュしたので無効化してあります。
+v1はfetch、v4はcloudflare対応です。
+v2とv3はクラッシュしたので無効化してあります。
+v4を使う場合は下のほうのenvの設定を確認してください。
 
 streamProxyはメモリの都合上、使用は推奨しません。
 
@@ -76,6 +77,7 @@ LOGIN_USER=username
 LOGIN_PASS=1234
 任意
 PORT=3000
+STATIC_API_V4=https://api.example.com
 ```
 
 ---

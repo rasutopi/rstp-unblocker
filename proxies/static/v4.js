@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
+require("dotenv").config();
 
-const UPSTREAM_API =
-  "https://rstp-unblocker-innerapi.onrender.com";
+const STATIC_API_V4 = process.env.STATIC_API_V4;
 
 router.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
   if (!url) return res.status(400).send("Missing url query parameter");
 
   try {
-    const upstreamUrl = `${UPSTREAM_API}?url=${encodeURIComponent(url)}`;
+    const upstreamUrl = `${STATIC_API_V4}?url=${encodeURIComponent(url)}`;
 
     const response = await fetch(upstreamUrl, {
       method: "GET",
