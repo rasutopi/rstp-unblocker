@@ -7,7 +7,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const staticProxyRouterV1 = require("../proxies/static/v1");
-const staticProxyRouterV2 = require("../proxies/static/v2");
+// const staticProxyRouterV2 = require("../proxies/static/v2");
 // const staticProxyRouterV3 = require("../proxies/static/v3");
 const staticProxyRouterV4 = require("../proxies/static/v4");
 const streamProxyRouterV1 = require("../proxies/streaming/v1");
@@ -533,6 +533,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
+
 
 
 
