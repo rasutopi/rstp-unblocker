@@ -1,6 +1,6 @@
 const express = require("express");
-const cloudscraper = require("cloudscraper");
 const router = express.Router();
+const { req } = require("curl-cffi");
 
 router.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -13,26 +13,32 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get("/", async (req, res) => {
-  const { url } = req.query;
+router.get("/", async (reqExpress, res) => {
+  const { url } = reqExpress.query;
   if (!url) return res.status(400).send("Missing url query parameter");
 
   try {
-    const response = await cloudscraper.get({
-      uri: url,
-      encoding: null, // ← バイナリ対応
-      resolveWithFullResponse: true,
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-      },
+    const response = await req.get(url, {
+      impersonate: "chrome136",
+      timeout: 30000,
     });
 
     const contentType =
-      response.headers["content-type"] || "application/octet-stream";
+      response.headers?.get?.("content-type") ||
+      "application/octet-stream";
 
     res.setHeader("Content-Type", contentType);
-    res.status(response.statusCode).send(response.body);
+    res.status(response.status || 200);
+
+    if (response.dataRaw) {
+      return res.send(Buffer.from(response.dataRaw));
+    }
+
+    if (typeof response.data === "string") {
+      return res.send(response.data);
+    }
+
+    res.send("");
   } catch (err) {
     res.status(500).send(`Error fetching ${url}: ${err.message}`);
   }
