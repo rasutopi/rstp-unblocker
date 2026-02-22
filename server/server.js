@@ -238,6 +238,7 @@ app.all('/*', async (req, res, next) => {
             }
         }
 
+        const startTime = Date.now();
         let response = await fetch(fetchUrl, fetchOptions);
         
         // LOG OUTPUT
@@ -253,9 +254,17 @@ app.all('/*', async (req, res, next) => {
           (req.headers['x-forwarded-for']?.split(',')[0] || '')
             .trim() ||
           req.socket.remoteAddress;        
-        pushLog(`[${timestamp}] ${ip} ${req.method} ${response.status} ${fetchUrl}`);
-        
 
+        const duration = Date.now() - startTime;
+
+        pushLog({
+            time: timestamp,
+            ip,
+            method: req.method,
+            status: response.status,
+            url: fetchUrl,
+            duration: duration
+        });
         storeSetCookie(response, res, fetchUrl);
 
         let finalUrl = fetchUrl;
@@ -555,24 +564,57 @@ app.listen(PORT, '0.0.0.0', () => {
 const http = require('http');
 const { Server } = require('socket.io');
 
-// ログ保存
-const accessLogs = [];
-
-function pushLog(entry) {
-    accessLogs.push(entry);
-    if (accessLogs.length > 1000) accessLogs.shift();
-
-    console.log(entry);
-
-    if (io) io.emit('log', entry);
-}
-
-// ===== 管理用アプリ =====
+// ===== 管理用アプリ（io を先に作る） =====
 const adminApp = express();
 const adminServer = http.createServer(adminApp);
 const io = new Server(adminServer);
 
-// ログ表示UI
+// ログ保存（オブジェクト配列）
+const accessLogs = [];
+
+// pushLog はオブジェクトを受け取る（柔軟に対応）
+function pushLog(entry) {
+    // entry が文字列で来てしまった場合はフォールバックで構成
+    let logObj;
+    if (typeof entry === 'string') {
+        // 可能なら簡易パース（安全策）
+        logObj = { raw: entry, time: new Date().toISOString() };
+    } else if (typeof entry === 'object' && entry !== null) {
+        logObj = {
+            time: entry.time || new Date().toISOString(),
+            ip: entry.ip || entry.remote || '-',
+            method: entry.method || '-',
+            status: typeof entry.status === 'number'
+                ? entry.status
+                : (entry.status || '-'),
+            url: entry.url || entry.path || '-',
+            duration: typeof entry.duration === 'number'
+                ? entry.duration
+                : Number(entry.duration),
+            ...(entry.meta && { meta: entry.meta })
+        };
+
+    } else {
+        logObj = { raw: String(entry), time: new Date().toISOString() };
+    }
+
+    accessLogs.push(logObj);
+    if (accessLogs.length > 1000) accessLogs.shift();
+
+    // Console には読みやすい文字列で出力
+    const consoleLine = `[${logObj.time}] ${logObj.ip} ${logObj.method} ${logObj.status} ${logObj.url}`;
+    console.log(consoleLine);
+
+    // Socket.io でオブジェクトを送る
+    try {
+        io.emit('log', logObj);
+    } catch (e) {
+        // io が未初期化でも安全に
+        console.error('io.emit failed', e);
+    }
+}
+
+// ログ表示UI（HTML） - クライアントは JSON オブジェクトを期待する
 adminApp.get('/', (req, res) => {
     res.send(`
 <!DOCTYPE html>
@@ -599,6 +641,7 @@ header {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid #334155;
+    z-index: 10;
 }
 button {
     background: #334155;
@@ -608,29 +651,56 @@ button {
     cursor: pointer;
     border-radius: 4px;
 }
-button:hover {
-    background: #475569;
-}
+button:hover { background: #475569; }
 #log {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
-
     scrollbar-width: none;
 }
-#log::-webkit-scrollbar {
-    display: none;
-}
+#log::-webkit-scrollbar { display: none; }
+
+/* 行レイアウト */
 .line {
-    padding: 3px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    gap: 10px;
 }
+.line span:first-child {
+    flex: 1;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+.line span:last-child {
+    white-space: nowrap;
+    margin-left: 12px;
+}
+
+/* ステータス色 */
 .status-2 { color: #22c55e; }  /* 2xx */
 .status-3 { color: #eab308; }  /* 3xx */
 .status-4 { color: #f97316; }  /* 4xx */
 .status-5 { color: #ef4444; }  /* 5xx */
-.meta {
+
+.meta { color: #94a3b8; margin-left: 8px; font-size: 0.9em; }
+.controls { display:flex; gap:8px; align-items:center; }
+.badge { background:#0b1220; padding:4px 8px; border-radius:8px; border:1px solid #263244; color:#9fb0cb; font-size:0.9em; }
+.newbadge { background:#ef4444; color:#fff; padding:3px 8px; border-radius:999px; margin-left:8px; display:none; cursor:pointer; }
+
+/* 小さめ表示の duration（右側） */
+.duration {
     color: #94a3b8;
+    font-size: 0.9em;
+    margin-left: 12px;
+}
+
+/* ジャンプボタン（未読時に表示） */
+#jumpBtn {
+    display: none;
+    background: #0ea5e9;
 }
 </style>
 </head>
@@ -641,74 +711,142 @@ button:hover {
         <strong>Proxy Access Console</strong>
         <span class="meta"> | Logs: <span id="count">0</span></span>
     </div>
-    <div>
-        <button onclick="clearLog()">Clear</button>
+    <div class="controls">
+        <div class="badge">Connected: <span id="clients">0</span></div>
+        <button id="clearBtn">Clear</button>
+        <button id="jumpBtn">Jump ↓</button>
+        <div class="newbadge" id="newBadge">New</div>
     </div>
 </header>
 
-<div id="log"></div>
+<!-- log の中に bottomAnchor を含める（アンカー方式で確実にスクロール） -->
+<div id="log"><div id="bottomAnchor" aria-hidden="true"></div></div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const logContainer = document.getElementById("log");
-const countEl = document.getElementById("count");
+(function () {
 
-let userScrolledUp = false;
+    var logContainer = document.getElementById("log");
+    var countEl = document.getElementById("count");
+    var clientsEl = document.getElementById("clients");
+    var clearBtn = document.getElementById("clearBtn");
+    var jumpBtn = document.getElementById("jumpBtn");
+    var newBadge = document.getElementById("newBadge");
 
-logContainer.addEventListener("scroll", () => {
-    const threshold = 5;
-    const atBottom =
-        logContainer.scrollTop + logContainer.clientHeight
-        >= logContainer.scrollHeight - threshold;
+    var unseenCount = 0;
 
-    userScrolledUp = !atBottom;
-});
-
-function addLine(text) {
-
-    const div = document.createElement("div");
-    div.className = "line";
-
-    const statusMatch = text.match(/\s(\d{3})\s/);
-    if (statusMatch) {
-        const status = statusMatch[1];
-        div.classList.add("status-" + status[0]);
+    function isAtBottom() {
+        return logContainer.scrollTop + logContainer.clientHeight
+            >= logContainer.scrollHeight - 5;
     }
 
-    div.textContent = text;
-    logContainer.appendChild(div);
-
-    countEl.textContent = logContainer.children.length;
-
-    // 👇 ユーザーが上にスクロールしていなければ追従
-    if (!userScrolledUp) {
+    function scrollToBottom() {
         logContainer.scrollTop = logContainer.scrollHeight;
     }
-}
-    
-function clearLog() {
-    logContainer.innerHTML = "";
-    countEl.textContent = "0";
-}
 
-const socket = io();
+    function addLine(log) {
 
-socket.on("init", logs => {
-    logs.forEach(addLine);
-});
+        // 🔥 1. 描画前に一番下にいるか判定
+        var wasAtBottom = isAtBottom();
 
-socket.on("log", line => {
-    addLine(line);
-});
+        var div = document.createElement("div");
+
+        var statusCode = "";
+        if (typeof log.status === "number" || /^[1-5]\d{2}$/.test(String(log.status))) {
+            statusCode = String(log.status);
+        }
+
+        div.className = statusCode
+            ? "line status-" + statusCode[0]
+            : "line";
+
+        var left = document.createElement("span");
+        left.textContent =
+            "[" + (log.time || "") + "] "
+            + (log.ip || "-") + " "
+            + (log.method || "-") + " "
+            + (statusCode || "-") + " "
+            + (log.url || "-");
+
+        var right = document.createElement("span");
+        right.className = "duration";
+        var d = Number(log.duration);
+        right.textContent = !isNaN(d) ? d + "ms" : "-";
+
+        div.appendChild(left);
+        div.appendChild(right);
+
+        logContainer.appendChild(div);
+        countEl.textContent = logContainer.children.length;
+
+        // 🔥 2. さっき一番下だったなら、描画後にスクロール
+        if (wasAtBottom) {
+            scrollToBottom();
+        } else {
+            unseenCount++;
+            newBadge.style.display = "inline-block";
+            newBadge.textContent = "New " + unseenCount;
+            jumpBtn.style.display = "inline-block";
+        }
+    }
+
+    jumpBtn.addEventListener("click", function () {
+        unseenCount = 0;
+        newBadge.style.display = "none";
+        jumpBtn.style.display = "none";
+        scrollToBottom();
+    });
+
+    clearBtn.addEventListener("click", function () {
+        socket.emit("clearLogs");
+        logContainer.innerHTML = "";
+        countEl.textContent = "0";
+        unseenCount = 0;
+        newBadge.style.display = "none";
+        jumpBtn.style.display = "none";
+    });
+
+    var socket = io();
+
+    socket.on("init", function (logs) {
+        logs.forEach(addLine);
+        scrollToBottom();
+    });
+
+    socket.on("log", function (log) {
+        addLine(log);
+    });
+
+    socket.on("clients", function (n) {
+        clientsEl.textContent = String(n);
+    });
+
+})();
 </script>
 
 </body>
 </html>
-    `);
+`);
 });
+
 // Socket接続時
 io.on('connection', socket => {
+    // 初期データ送信（accessLogs はオブジェクト配列）
     socket.emit('init', accessLogs);
+
+    // クライアント数ブロードキャスト
+    const clients = io.engine.clientsCount || 0;
+    io.emit('clients', clients);
+
+    // クライアントからログクリア要求が来たらサーバー側配列をクリア
+    socket.on('clearLogs', () => {
+        accessLogs.length = 0;
+        io.emit('clients', io.engine.clientsCount || 0);
+    });
+
+    socket.on('disconnect', () => {
+        io.emit('clients', io.engine.clientsCount || 0);
+    });
 });
 
 // ランダムポート起動
