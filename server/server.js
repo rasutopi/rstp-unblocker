@@ -157,21 +157,8 @@ app.all('/*', async (req, res, next) => {
         const protocol = req.headers['x-forwarded-proto'] || req.protocol;
         const browserUrl = new URL(req.originalUrl, `${protocol}://${req.headers.host}`);
         browserUrl.searchParams.delete('__p_origin');
+        
         const fetchUrl = new URL(browserUrl.pathname + browserUrl.search, originalUrl).href;
-        // LOG OUTPUT
-        const now = new Date();
-        const timestamp =
-          now.getFullYear() + '-' +
-          String(now.getMonth() + 1).padStart(2, '0') + '-' +
-          String(now.getDate()).padStart(2, '0') + ' ' +
-          String(now.getHours()).padStart(2, '0') + ':' +
-          String(now.getMinutes()).padStart(2, '0') + ':' +
-          String(now.getSeconds()).padStart(2, '0');
-        const ip =
-          (req.headers['x-forwarded-for']?.split(',')[0] || '')
-            .trim() ||
-          req.socket.remoteAddress;        
-        console.log(`[${timestamp}] IP: ${ip} ${req.method} ${fetchUrl}`);
 
         // User-Agent 設定
         const uaMode = req.cookies?.uaMode || 'default';
@@ -253,6 +240,22 @@ app.all('/*', async (req, res, next) => {
 
         let response = await fetch(fetchUrl, fetchOptions);
         
+        // LOG OUTPUT
+        const now = new Date();
+        const timestamp =
+          now.getFullYear() + '-' +
+          String(now.getMonth() + 1).padStart(2, '0') + '-' +
+          String(now.getDate()).padStart(2, '0') + ' ' +
+          String(now.getHours()).padStart(2, '0') + ':' +
+          String(now.getMinutes()).padStart(2, '0') + ':' +
+          String(now.getSeconds()).padStart(2, '0');
+        const ip =
+          (req.headers['x-forwarded-for']?.split(',')[0] || '')
+            .trim() ||
+          req.socket.remoteAddress;        
+        pushLog(`[${timestamp}] ${ip} ${req.method} ${response.status} ${fetchUrl}`);
+        
+
         storeSetCookie(response, res, fetchUrl);
 
         let finalUrl = fetchUrl;
@@ -545,5 +548,171 @@ app.use((err, req, res, next) => {
 // サーバー起動
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
+});
 
+
+// --- 管理画面 ---
+const http = require('http');
+const { Server } = require('socket.io');
+
+// ログ保存
+const accessLogs = [];
+
+function pushLog(entry) {
+    accessLogs.push(entry);
+    if (accessLogs.length > 1000) accessLogs.shift();
+
+    console.log(entry);
+
+    if (io) io.emit('log', entry);
+}
+
+// ===== 管理用アプリ =====
+const adminApp = express();
+const adminServer = http.createServer(adminApp);
+const io = new Server(adminServer);
+
+// ログ表示UI
+adminApp.get('/', (req, res) => {
+    res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Proxy Console</title>
+<style>
+body {
+    margin: 0;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: Consolas, monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+header {
+    position: sticky;
+    top: 0;
+    background: #1e293b;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #334155;
+}
+button {
+    background: #334155;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+button:hover {
+    background: #475569;
+}
+#log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+
+    scrollbar-width: none;
+}
+#log::-webkit-scrollbar {
+    display: none;
+}
+.line {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.status-2 { color: #22c55e; }  /* 2xx */
+.status-3 { color: #eab308; }  /* 3xx */
+.status-4 { color: #f97316; }  /* 4xx */
+.status-5 { color: #ef4444; }  /* 5xx */
+.meta {
+    color: #94a3b8;
+}
+</style>
+</head>
+<body>
+
+<header>
+    <div>
+        <strong>Proxy Access Console</strong>
+        <span class="meta"> | Logs: <span id="count">0</span></span>
+    </div>
+    <div>
+        <button onclick="clearLog()">Clear</button>
+    </div>
+</header>
+
+<div id="log"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const logContainer = document.getElementById("log");
+const countEl = document.getElementById("count");
+
+let userScrolledUp = false;
+
+logContainer.addEventListener("scroll", () => {
+    const threshold = 5;
+    const atBottom =
+        logContainer.scrollTop + logContainer.clientHeight
+        >= logContainer.scrollHeight - threshold;
+
+    userScrolledUp = !atBottom;
+});
+
+function addLine(text) {
+
+    const div = document.createElement("div");
+    div.className = "line";
+
+    const statusMatch = text.match(/\s(\d{3})\s/);
+    if (statusMatch) {
+        const status = statusMatch[1];
+        div.classList.add("status-" + status[0]);
+    }
+
+    div.textContent = text;
+    logContainer.appendChild(div);
+
+    countEl.textContent = logContainer.children.length;
+
+    // 👇 ユーザーが上にスクロールしていなければ追従
+    if (!userScrolledUp) {
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+}
+    
+function clearLog() {
+    logContainer.innerHTML = "";
+    countEl.textContent = "0";
+}
+
+const socket = io();
+
+socket.on("init", logs => {
+    logs.forEach(addLine);
+});
+
+socket.on("log", line => {
+    addLine(line);
+});
+</script>
+
+</body>
+</html>
+    `);
+});
+// Socket接続時
+io.on('connection', socket => {
+    socket.emit('init', accessLogs);
+});
+
+// ランダムポート起動
+adminServer.listen(0, '0.0.0.0', () => {
+    const { port } = adminServer.address();
+    console.log(`Admin console running at http://localhost:${port}`);
 });
