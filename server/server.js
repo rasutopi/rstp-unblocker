@@ -746,27 +746,51 @@ button:hover { background: #475569; }
 
     function addLine(log) {
 
-        // 🔥 1. 描画前に一番下にいるか判定
         var wasAtBottom = isAtBottom();
-
         var div = document.createElement("div");
 
+        // ✅ 正規表現を使わない安全判定
         var statusCode = "";
-        if (typeof log.status === "number" || /^[1-5]\d{2}$/.test(String(log.status))) {
+        if (log.status && String(log.status).length === 3) {
             statusCode = String(log.status);
         }
 
         div.className = statusCode
-            ? "line status-" + statusCode[0]
+            ? "line status-" + statusCode.charAt(0)
             : "line";
 
         var left = document.createElement("span");
-        left.textContent =
-            "[" + (log.time || "") + "] "
-            + (log.ip || "-") + " "
-            + (log.method || "-") + " "
-            + (statusCode || "-") + " "
-            + (log.url || "-");
+
+        var prefixText =
+            "[" + (log.time || "") + "] " +
+            (log.ip || "-") + " " +
+            (log.method || "-") + " " +
+            (statusCode || "-") + " ";
+
+        left.appendChild(document.createTextNode(prefixText));
+
+        // ===== URLリンク =====
+        var url = (log.url || "-").toString();
+        var link = document.createElement("a");
+
+        if (url !== "-" && url !== "") {
+            if (url.indexOf("http://") === 0 || url.indexOf("https://") === 0) {
+                link.href = url;
+            } else {
+                link.href = location.origin + url;
+            }
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+        } else {
+            link.href = "#";
+            link.onclick = function (e) { e.preventDefault(); };
+        }
+
+        link.textContent = url;
+        link.style.color = "#60a5fa";
+        link.style.textDecoration = "none";
+
+        left.appendChild(link);
 
         var right = document.createElement("span");
         right.className = "duration";
@@ -779,7 +803,6 @@ button:hover { background: #475569; }
         logContainer.appendChild(div);
         countEl.textContent = logContainer.children.length;
 
-        // 🔥 2. さっき一番下だったなら、描画後にスクロール
         if (wasAtBottom) {
             scrollToBottom();
         } else {
@@ -823,7 +846,6 @@ button:hover { background: #475569; }
 
 })();
 </script>
-
 </body>
 </html>
 `);
@@ -854,3 +876,4 @@ adminServer.listen(0, '0.0.0.0', () => {
     const { port } = adminServer.address();
     console.log(`Admin console running at http://localhost:${port}`);
 });
+
