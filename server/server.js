@@ -158,6 +158,20 @@ app.all('/*', async (req, res, next) => {
         const browserUrl = new URL(req.originalUrl, `${protocol}://${req.headers.host}`);
         browserUrl.searchParams.delete('__p_origin');
         const fetchUrl = new URL(browserUrl.pathname + browserUrl.search, originalUrl).href;
+        // LOG OUTPUT
+        const now = new Date();
+        const timestamp =
+          now.getFullYear() + '-' +
+          String(now.getMonth() + 1).padStart(2, '0') + '-' +
+          String(now.getDate()).padStart(2, '0') + ' ' +
+          String(now.getHours()).padStart(2, '0') + ':' +
+          String(now.getMinutes()).padStart(2, '0') + ':' +
+          String(now.getSeconds()).padStart(2, '0');
+        const ip =
+          (req.headers['x-forwarded-for']?.split(',')[0] || '')
+            .trim() ||
+          req.socket.remoteAddress;        
+        console.log(`[${timestamp}] IP: ${ip} ${req.method} ${fetchUrl}`);
 
         // User-Agent 設定
         const uaMode = req.cookies?.uaMode || 'default';
@@ -533,16 +547,3 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Proxy server running at http://0.0.0.0:${PORT}`);
 
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
