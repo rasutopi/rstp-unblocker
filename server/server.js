@@ -4,8 +4,10 @@ const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const fs = require("fs");
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+
 const staticProxyRouterV1 = require("../proxies/static/v1");
 // const staticProxyRouterV2 = require("../proxies/static/v2");
 // const staticProxyRouterV3 = require("../proxies/static/v3");
@@ -141,6 +143,46 @@ app.use((req, res, next) => {
     requireAuth(req, res, next);
 });
 
+// アクセス集計（ラグいよ）
+// const logPath = path.join(__dirname, "access.log");
+// const accessStream = fs.createWriteStream(logPath, { flags: "a" });
+// app.use((req, res, next) => {
+//   const start = Date.now();
+
+//   res.on("finish", () => {
+//     const log = {
+//       time: new Date().toISOString(),
+//       method: req.method,
+//       url: req.originalUrl,
+//       status: res.statusCode,
+//       duration: Date.now() - start,
+//       ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress
+//     };
+
+//     accessStream.write(JSON.stringify(log) + "\n");
+//   });
+
+//   next();
+// });
+
+//  アクセス時間帯を集計
+const trackPath = path.join(__dirname, "viewtime.log");
+const trackStream = fs.createWriteStream(trackPath, { flags: "a" });
+
+function formatTime(date) {
+  const yyyy = date.getFullYear();
+  const mm   = String(date.getMonth() + 1).padStart(2, "0");
+  const dd   = String(date.getDate()).padStart(2, "0");
+  const hh   = String(date.getHours()).padStart(2, "0");
+  const mi   = String(date.getMinutes()).padStart(2, "0");
+  const ss   = String(date.getSeconds()).padStart(2, "0");
+  return `${yyyy}${mm}${dd} ${hh}${mi}${ss}`;
+}
+// トラッキングAPI
+app.post("/api/track-view-time", (req, res) => {
+  trackStream.write(formatTime(new Date()) + "\n");
+  res.status(204).end(); // 超軽量レスポンス
+});
 
 // ルーティング（一部修正にChatGPT、Geminiを使用）
 app.all('/*', async (req, res, next) => {
@@ -434,6 +476,7 @@ app.all('/*', async (req, res, next) => {
             $('head').prepend(`<script src="${assetBase}/js/cookies-hook.js"></script>`);
             $('head').prepend(`<script src="${assetBase}/js/ppp-ui.js"></script>`);
             $('head').prepend(`<script src="${assetBase}/js/rewrite-dom.js"></script>`);
+            $('head').prepend(`<script src="${assetBase}/js/t_r_a_c_k.js"></script>`);
             $('head').prepend(`<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">`);
             $('head').prepend(`<base __p_origin href="${fullUrl}">`);
 
@@ -603,7 +646,7 @@ function pushLog(entry) {
 
     // Console には読みやすい文字列で出力
     const consoleLine = `[${logObj.time}] ${logObj.ip} ${logObj.method} ${logObj.status} ${logObj.url}`;
-    console.log(consoleLine);
+    // console.log(consoleLine);
 
     // Socket.io でオブジェクトを送る
     try {
@@ -614,243 +657,40 @@ function pushLog(entry) {
     }
 }
 
-// ログ表示UI（HTML） - クライアントは JSON オブジェクトを期待する
-adminApp.get('/', (req, res) => {
-    res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Proxy Console</title>
-<style>
-body {
-    margin: 0;
-    background: #0f172a;
-    color: #e2e8f0;
-    font-family: Consolas, monospace;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-header {
-    position: sticky;
-    top: 0;
-    background: #1e293b;
-    padding: 10px 15px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #334155;
-    z-index: 10;
-}
-button {
-    background: #334155;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    cursor: pointer;
-    border-radius: 4px;
-}
-button:hover { background: #475569; }
-#log {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    scrollbar-width: none;
-}
-#log::-webkit-scrollbar { display: none; }
-
-/* 行レイアウト */
-.line {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 6px 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-    gap: 10px;
-}
-.line span:first-child {
-    flex: 1;
-    word-break: break-all;
-    white-space: pre-wrap;
-}
-.line span:last-child {
-    white-space: nowrap;
-    margin-left: 12px;
-}
-
-/* ステータス色 */
-.status-2 { color: #22c55e; }  /* 2xx */
-.status-3 { color: #eab308; }  /* 3xx */
-.status-4 { color: #f97316; }  /* 4xx */
-.status-5 { color: #ef4444; }  /* 5xx */
-
-.meta { color: #94a3b8; margin-left: 8px; font-size: 0.9em; }
-.controls { display:flex; gap:8px; align-items:center; }
-.badge { background:#0b1220; padding:4px 8px; border-radius:8px; border:1px solid #263244; color:#9fb0cb; font-size:0.9em; }
-.newbadge { background:#ef4444; color:#fff; padding:3px 8px; border-radius:999px; margin-left:8px; display:none; cursor:pointer; }
-
-/* 小さめ表示の duration（右側） */
-.duration {
-    color: #94a3b8;
-    font-size: 0.9em;
-    margin-left: 12px;
-}
-
-/* ジャンプボタン（未読時に表示） */
-#jumpBtn {
-    display: none;
-    background: #0ea5e9;
-}
-</style>
-</head>
-<body>
-
-<header>
-    <div>
-        <strong>Proxy Access Console</strong>
-        <span class="meta"> | Logs: <span id="count">0</span></span>
-    </div>
-    <div class="controls">
-        <div class="badge">Connected: <span id="clients">0</span></div>
-        <button id="clearBtn">Clear</button>
-        <button id="jumpBtn">Jump ↓</button>
-        <div class="newbadge" id="newBadge">New</div>
-    </div>
-</header>
-
-<!-- log の中に bottomAnchor を含める（アンカー方式で確実にスクロール） -->
-<div id="log"><div id="bottomAnchor" aria-hidden="true"></div></div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-(function () {
-
-    var logContainer = document.getElementById("log");
-    var countEl = document.getElementById("count");
-    var clientsEl = document.getElementById("clients");
-    var clearBtn = document.getElementById("clearBtn");
-    var jumpBtn = document.getElementById("jumpBtn");
-    var newBadge = document.getElementById("newBadge");
-
-    var unseenCount = 0;
-
-    function isAtBottom() {
-        return logContainer.scrollTop + logContainer.clientHeight
-            >= logContainer.scrollHeight - 5;
-    }
-
-    function scrollToBottom() {
-        logContainer.scrollTop = logContainer.scrollHeight;
-    }
-
-    function addLine(log) {
-
-        var wasAtBottom = isAtBottom();
-        var div = document.createElement("div");
-
-        // ✅ 正規表現を使わない安全判定
-        var statusCode = "";
-        if (log.status && String(log.status).length === 3) {
-            statusCode = String(log.status);
-        }
-
-        div.className = statusCode
-            ? "line status-" + statusCode.charAt(0)
-            : "line";
-
-        var left = document.createElement("span");
-
-        var prefixText =
-            "[" + (log.time || "") + "] " +
-            (log.ip || "-") + " " +
-            (log.method || "-") + " " +
-            (statusCode || "-") + " ";
-
-        left.appendChild(document.createTextNode(prefixText));
-
-        // ===== URLリンク =====
-        var url = (log.url || "-").toString();
-        var link = document.createElement("a");
-
-        if (url !== "-" && url !== "") {
-            if (url.indexOf("http://") === 0 || url.indexOf("https://") === 0) {
-                link.href = url;
-            } else {
-                link.href = location.origin + url;
-            }
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-        } else {
-            link.href = "#";
-            link.onclick = function (e) { e.preventDefault(); };
-        }
-
-        link.textContent = url;
-        link.style.color = "#60a5fa";
-        link.style.textDecoration = "none";
-
-        left.appendChild(link);
-
-        var right = document.createElement("span");
-        right.className = "duration";
-        var d = Number(log.duration);
-        right.textContent = !isNaN(d) ? d + "ms" : "-";
-
-        div.appendChild(left);
-        div.appendChild(right);
-
-        logContainer.appendChild(div);
-        countEl.textContent = logContainer.children.length;
-
-        if (wasAtBottom) {
-            scrollToBottom();
-        } else {
-            unseenCount++;
-            newBadge.style.display = "inline-block";
-            newBadge.textContent = "New " + unseenCount;
-            jumpBtn.style.display = "inline-block";
-        }
-    }
-
-    jumpBtn.addEventListener("click", function () {
-        unseenCount = 0;
-        newBadge.style.display = "none";
-        jumpBtn.style.display = "none";
-        scrollToBottom();
-    });
-
-    clearBtn.addEventListener("click", function () {
-        socket.emit("clearLogs");
-        logContainer.innerHTML = "";
-        countEl.textContent = "0";
-        unseenCount = 0;
-        newBadge.style.display = "none";
-        jumpBtn.style.display = "none";
-    });
-
-    var socket = io();
-
-    socket.on("init", function (logs) {
-        logs.forEach(addLine);
-        scrollToBottom();
-    });
-
-    socket.on("log", function (log) {
-        addLine(log);
-    });
-
-    socket.on("clients", function (n) {
-        clientsEl.textContent = String(n);
-    });
-
-})();
-</script>
-</body>
-</html>
-`);
+adminApp.get("/", (req, res) => {
+  res.redirect("/dashboard");
 });
+adminApp.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, "../admin/public/index.html"));
+});
+adminApp.get('/dashboard/access', (req, res) => {
+    res.sendFile(path.join(__dirname, "../admin/public/preview.html"));
+});
+adminApp.get('/dashboard/fetch', (req, res) => {
+    res.sendFile(path.join(__dirname, "../admin/public/fetchlog.html"));
+});
+adminApp.get("/api/dashboard/access", (req, res) => {
+  fs.readFile(logPath, "utf8", (err, data) => {
+    if (err) return res.json([]);
 
+    const lines = data.split("\n").filter(Boolean);
+    const logs = lines.map(line => {
+      try { return JSON.parse(line); }
+      catch { return null; }
+    }).filter(Boolean);
+
+    res.json(logs.slice(-1000));
+  });
+});
+adminApp.get("/api/dashboard/view", (req, res) => {
+  fs.readFile(trackPath, "utf8", (err, data) => {
+    if (err) return res.json([]);
+
+    const lines = data.split("\n").filter(Boolean);
+
+    res.json(lines);
+  });
+});
 // Socket接続時
 io.on('connection', socket => {
     // 初期データ送信（accessLogs はオブジェクト配列）

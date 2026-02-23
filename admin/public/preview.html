@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Advanced View Dashboard — 見やすく再設計</title>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+:root{--bg:#071226;--card:#0f1724;--muted:#9fb0c8;--accent:#60a5fa;--good:#22c55e;--warn:#f59e0b;--danger:#ef4444}
+html,body{height:100%;margin:0;background:linear-gradient(180deg,#041226,#07132a);color:#e8f4ff;font-family:Inter, system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', Meiryo, Arial}
+.wrap{max-width:1200px;margin:18px auto;padding:16px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.title{font-size:18px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+.btn.primary{background:var(--accent);color:#021;border:none}
+.panel{background:var(--card);padding:12px;border-radius:12px;margin-top:12px}
+.kpis{display:flex;gap:12px;margin-top:12px}
+.kpi{flex:1;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));}
+.kpi .label{color:var(--muted);font-size:12px}
+.kpi .value{font-size:20px;font-weight:700;margin-top:6px}
+.grid{display:grid;grid-template-columns:1fr 380px;gap:12px;margin-top:12px}
+@media (max-width:1000px){.grid{grid-template-columns:1fr}}
+.chartWrap{height:380px}
+.rightCol{display:flex;flex-direction:column;gap:12px}
+.controlsRow{display:flex;gap:8px;align-items:center}
+.small{font-size:12px;color:var(--muted)}
+.selector{background:#071629;color:#e6eef8;border:1px solid #223344;padding:6px 8px;border-radius:6px}
+.rawTable{max-height:220px;overflow:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:6px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px;color:#cfe6ff}
+.footer{margin-top:12px;display:flex;justify-content:space-between;align-items:center}
+.legend{display:flex;gap:8px;align-items:center}
+.legend .dot{width:10px;height:10px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="title">閲覧ダッシュボード — 高速・直感表示</div>
+      <div class="small">データ: <code>/api/dashboard/view</code>（yyyymmdd hhmmss）</div>
+    </div>
+
+    <div class="controls">
+      <select id="granularity" class="selector">
+        <option value="minute">分</option>
+        <option value="hour" selected>時</option>
+        <option value="day">日</option>
+        <option value="week">週</option>
+        <option value="month">月</option>
+        <option value="year">年</option>
+      </select>
+
+      <select id="chartType" class="selector">
+        <option value="bar">棒グラフ（デフォルト）</option>
+        <option value="line">折れ線グラフ</option>
+      </select>
+
+      <button id="refresh" class="btn primary">再取得</button>
+      <button id="csv" class="btn">CSV</button>
+      <button id="exportPng" class="btn">PNG出力</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">合計表示回数</div>
+      <div id="k_total" class="value">—</div>
+      <div class="small">記録開始からの合計</div>
+    </div>
+    <div class="kpi">
+      <div class="label">表示/選択範囲</div>
+      <div id="k_range" class="value">—</div>
+      <div class="small">フィルタされた期間内の合計</div>
+    </div>
+    <div class="kpi">
+      <div class="label">ピーク</div>
+      <div id="k_peak" class="value">—</div>
+      <div class="small">最も多いバケット（granularityベース）</div>
+    </div>
+    <div class="kpi">
+      <div class="label">最新受信</div>
+      <div id="k_latest" class="value">—</div>
+      <div class="small">最新ログ時刻</div>
+    </div>
+  </div>
+
+  <div class="panel grid">
+    <div>
+      <div class="chartWrap panel" id="chartPanel">
+        <canvas id="mainChart"></canvas>
+      </div>
+
+      <div class="panel" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label class="small">期間:</label>
+        <input type="date" id="fromDate"> - <input type="date" id="toDate">
+        <label class="small">移動平均</label>
+        <input type="number" id="ma" value="1" min="1" style="width:72px">
+        <label class="small">自動更新</label>
+        <input type="checkbox" id="autoRefresh"><input type="number" id="autoSec" value="30" min="5" style="width:72px">秒
+      </div>
+    </div>
+
+    <div class="rightCol">
+      <div class="panel">
+        <div class="small">素早く分かる指標</div>
+        <div style="margin-top:8px">
+          <div class="small">平均/日: <strong id="stat_avg">—</strong></div>
+          <div class="small">一意日数: <strong id="stat_days">—</strong></div>
+          <div class="small">最新N件: <strong id="stat_recent">—</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="small">最新ログ（短縮）</div>
+        <div class="rawTable"><table><thead><tr><th>#</th><th>raw</th></tr></thead><tbody id="rawBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="small">注意: JS無効や広告ブロッカーで取れない場合があります。</div>
+    <div class="legend">
+      <div class="small">表示切替:</div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="dot" style="background:#60a5fa"></span><div class="small">バケット</div></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="dot" style="background:#ffd166"></span><div class="small">累積</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// advanced dashboard script
+const API = '/api/dashboard/view';
+let raw = []; // {orig, date}
+let chart = null;
+let autoId = null;
+const MAX_RAW = 20000; // safety
+
+function parseYmdHms(s){
+  if(!s) return null;
+  const [ymd,hms] = s.trim().split(' ');
+  if(!ymd||!hms) return null;
+  const y = +ymd.slice(0,4); const m = +ymd.slice(4,6); const d = +ymd.slice(6,8);
+  const hh = +hms.slice(0,2); const min = +hms.slice(2,4); const ss = +hms.slice(4,6);
+  return new Date(y,m-1,d,hh,min,ss);
+}
+
+function toYYYYMMDD(d){ return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+
+// --- aggregation functions ---
+function bucketBy(items, granularity, from, to){
+  // returns {labels:[], values:[]}
+  if(granularity==='minute') return bucketMinutes(items, from, to);
+  if(granularity==='hour') return bucketHours(items, from, to);
+  if(granularity==='day') return bucketDays(items, from, to);
+  if(granularity==='week') return bucketWeeks(items, from, to);
+  if(granularity==='month') return bucketMonths(items, from, to);
+  if(granularity==='year') return bucketYears(items, from, to);
+  return {labels:[], values:[]};
+}
+
+function bucketMinutes(items, from, to){
+  if(!to) to = items.length? items[items.length-1].date : new Date();
+  if(!from) from = new Date(to.getTime() - 59*60*1000);
+  const map = new Map();
+  const labels = [];
+  for(let t=new Date(from); t<=to; t.setMinutes(t.getMinutes()+1)){
+    const key = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+    labels.push(key);
+    map.set(key,0);
+  }
+  items.forEach(it=>{
+    if(it.date<from||it.date>to) return;
+    const key = `${it.date.getFullYear()}-${String(it.date.getMonth()+1).padStart(2,'0')}-${String(it.date.getDate()).padStart(2,'0')} ${String(it.date.getHours()).padStart(2,'0')}:${String(it.date.getMinutes()).padStart(2,'0')}`;
+    map.set(key, (map.get(key)||0)+1);
+  });
+  return {labels:labels, values:labels.map(l=>map.get(l)||0)};
+}
+
+function bucketHours(items, from, to){
+  // build buckets by hour between min and max
+  if(!from && items.length) from = new Date(items[0].date.getFullYear(), items[0].date.getMonth(), items[0].date.getDate());
+  if(!to && items.length) to = items[items.length-1].date;
+  if(!from) from = new Date();
+  if(!to) to = new Date();
+  const map = new Map(); const labels=[];
+  for(let t=new Date(from); t<=to; t.setHours(t.getHours()+1)){
+    const key = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:00`;
+    labels.push(key); map.set(key,0);
+  }
+  items.forEach(it=>{ if(it.date<from||it.date>to) return; const key = `${it.date.getFullYear()}-${String(it.date.getMonth()+1).padStart(2,'0')}-${String(it.date.getDate()).padStart(2,'0')} ${String(it.date.getHours()).padStart(2,'0')}:00`; map.set(key,(map.get(key)||0)+1); });
+  return {labels, values: labels.map(l=>map.get(l)||0)};
+}
+
+function bucketDays(items, from, to){
+  if(!from && items.length) from = new Date(items[0].date.getFullYear(), items[0].date.getMonth(), items[0].date.getDate());
+  if(!to && items.length) to = items[items.length-1].date;
+  const map = new Map(); const labels=[];
+  for(let t=new Date(from); t<=to; t.setDate(t.getDate()+1)){
+    const key = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    labels.push(key); map.set(key,0);
+  }
+  items.forEach(it=>{ if(it.date<from||it.date>to) return; const key = `${it.date.getFullYear()}-${String(it.date.getMonth()+1).padStart(2,'0')}-${String(it.date.getDate()).padStart(2,'0')}`; map.set(key,(map.get(key)||0)+1); });
+  return {labels, values: labels.map(l=>map.get(l)||0)};
+}
+
+function isoWeekKey(d){
+  // get ISO week-year key like YYYY-Www
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1)/7);
+  return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2,'0')}`;
+}
+
+function bucketWeeks(items, from, to){
+  if(!from && items.length) from = new Date(items[0].date.getFullYear(), items[0].date.getMonth(), items[0].date.getDate());
+  if(!to && items.length) to = items[items.length-1].date;
+  const map = new Map(); const labels = [];
+  // iterate weeks from 'from' to 'to'
+  let cur = new Date(from);
+  cur.setDate(cur.getDate() - cur.getDay() + 1); // set to Monday-ish
+  while(cur <= to){ const key = isoWeekKey(cur); if(!map.has(key)){ labels.push(key); map.set(key,0); } cur.setDate(cur.getDate()+7); }
+  items.forEach(it=>{ if(it.date<from||it.date>to) return; const key = isoWeekKey(it.date); map.set(key,(map.get(key)||0)+1); });
+  return {labels, values: labels.map(l=>map.get(l)||0)};
+}
+
+function bucketMonths(items, from, to){
+  if(!from && items.length) from = new Date(items[0].date.getFullYear(), items[0].date.getMonth(), 1);
+  if(!to && items.length) to = items[items.length-1].date;
+  const map = new Map(); const labels=[];
+  let cur = new Date(from.getFullYear(), from.getMonth(), 1);
+  while(cur <= to){ const key = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`; labels.push(key); map.set(key,0); cur.setMonth(cur.getMonth()+1); }
+  items.forEach(it=>{ if(it.date<from||it.date>to) return; const key = `${it.date.getFullYear()}-${String(it.date.getMonth()+1).padStart(2,'0')}`; map.set(key,(map.get(key)||0)+1); });
+  return {labels, values: labels.map(l=>map.get(l)||0)};
+}
+
+function bucketYears(items, from, to){
+  if(!from && items.length) from = new Date(items[0].date.getFullYear(),0,1);
+  if(!to && items.length) to = items[items.length-1].date;
+  const map = new Map(); const labels = [];
+  let cur = new Date(from.getFullYear(),0,1);
+  while(cur <= to){ const key = `${cur.getFullYear()}`; labels.push(key); map.set(key,0); cur.setFullYear(cur.getFullYear()+1); }
+  items.forEach(it=>{ if(it.date<from||it.date>to) return; const key = `${it.date.getFullYear()}`; map.set(key,(map.get(key)||0)+1); });
+  return {labels, values: labels.map(l=>map.get(l)||0)};
+}
+
+// moving average
+function movingAverage(arr, window){ if(window<=1) return arr.slice(); const out = new Array(arr.length).fill(0); const w = Math.floor(window); const half = Math.floor(w/2); for(let i=0;i<arr.length;i++){ let sum=0,c=0; for(let j=i-half;j<=i+half;j++){ if(j>=0&&j<arr.length){ sum+=arr[j]; c++; } } out[i] = c? Math.round(sum/c):0; } return out; }
+
+// --- rendering ---
+function render(labels, values, granularity, chartType){
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const cum = []; let s=0; values.forEach(v=>{ s+=v; cum.push(s); });
+  const datasets = [];
+  if(chartType==='bar') datasets.push({ type:'bar', label:'bucket', data:values, backgroundColor:'#60a5fa', borderRadius:4 });
+  else datasets.push({ type:'line', label:'bucket', data:values, fill:false, borderColor:'#60a5fa', tension:0.2 });
+  datasets.push({ type:'line', label:'cumulative', data:cum, yAxisID:'y1', borderColor:'#ffd166', tension:0.2, pointRadius:0 });
+
+  const cfg = { type:'bar', data:{ labels, datasets }, options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, scales:{ y:{ beginAtZero:true }, y1:{ position:'right', grid:{drawOnChartArea:false} } }, plugins:{ tooltip:{ callbacks:{ label(ctx){ return ctx.dataset.type==='line' && ctx.dataset.label==='cumulative' ? `累積: ${ctx.formattedValue}` : `count: ${ctx.formattedValue}`; } } } } } };
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, cfg);
+}
+
+// --- utils ---
+function isoDateInputString(d){ return d.toISOString().slice(0,10); }
+
+function updateKpis(filtered){
+  document.getElementById('k_total').textContent = raw.length;
+  document.getElementById('k_range').textContent = filtered.length;
+  document.getElementById('k_latest').textContent = filtered.length? filtered[filtered.length-1].date.toLocaleString() : '-';
+  // peak computed after aggregation
+}
+
+function computeStats(filtered){
+  if(!filtered.length){ document.getElementById('stat_avg').textContent='-'; document.getElementById('stat_days').textContent='-'; document.getElementById('stat_recent').textContent='-'; return; }
+  const days = {};
+  filtered.forEach(r=>{ const k = r.date.getFullYear()+''+String(r.date.getMonth()+1).padStart(2,'0')+String(r.date.getDate()).padStart(2,'0'); days[k] = (days[k]||0)+1; });
+  const avg = Math.round(Object.values(days).reduce((a,b)=>a+b,0)/Object.keys(days).length);
+  document.getElementById('stat_avg').textContent = avg;
+  document.getElementById('stat_days').textContent = Object.keys(days).length;
+  document.getElementById('stat_recent').textContent = Math.min(100, filtered.length);
+}
+
+function renderRawTable(){ const tb = document.getElementById('rawBody'); tb.innerHTML=''; const slice = raw.slice(-100).reverse(); slice.forEach((r,i)=>{ const tr=document.createElement('tr'); const td1=document.createElement('td'); td1.textContent = i+1; const td2=document.createElement('td'); td2.textContent = r.orig; tr.appendChild(td1); tr.appendChild(td2); tb.appendChild(tr); }); }
+
+// --- main flow ---
+async function loadData(){
+  try{
+    const res = await fetch(API, {cache:'no-store'});
+    if(!res.ok) throw new Error(res.status);
+    const arr = await res.json();
+    raw = arr.map(s=>({orig:s, date:parseYmdHms(s)})).filter(x=>x.date instanceof Date && !isNaN(x.date));
+    raw.sort((a,b)=>a.date-b.date);
+    if(raw.length>MAX_RAW) raw = raw.slice(-MAX_RAW); // trim
+    renderRawTable();
+    applyRender();
+  }catch(e){ console.error('load fail',e); }
+}
+
+function applyRender(){
+  const fromVal = document.getElementById('fromDate').value;
+  const toVal = document.getElementById('toDate').value;
+  const gran = document.getElementById('granularity').value;
+  const chartType = document.getElementById('chartType').value;
+  const ma = Math.max(1, parseInt(document.getElementById('ma').value)||1);
+
+  let from = fromVal? new Date(fromVal+'T00:00:00') : null;
+  let to = toVal? new Date(toVal+'T23:59:59.999') : null;
+  const filtered = raw.filter(r=> (from? r.date>=from : true) && (to? r.date<=to : true));
+
+  updateKpis(filtered);
+  computeStats(filtered);
+
+  const agg = bucketBy(filtered, gran, from, to);
+  if(agg.labels.length===0){ render([],[]); return; }
+  let values = agg.values.slice();
+  if(ma>1) values = movingAverage(values, ma);
+  // peak
+  const peakIdx = values.indexOf(Math.max(...values));
+  const peakLabel = peakIdx>=0? agg.labels[peakIdx] : '-';
+  document.getElementById('k_peak').textContent = peakLabel;
+
+  render(agg.labels, values, gran, chartType);
+}
+
+function downloadCsv(){ if(!raw.length) return; const rows = [['orig','iso']]; raw.forEach(r=> rows.push([`"${r.orig}"`,`"${r.date.toISOString()}"`])); const blob=new Blob([rows.map(r=>r.join(',')).join('\n')], {type:'text/csv'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='view_export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+function exportPng(){ if(!chart) return; const url = chart.toBase64Image(); const a=document.createElement('a'); a.href=url; a.download='chart.png'; document.body.appendChild(a); a.click(); a.remove(); }
+
+function startAuto(){ stopAuto(); if(!document.getElementById('autoRefresh').checked) return; const sec=Math.max(5, parseInt(document.getElementById('autoSec').value)||30); autoId = setInterval(()=> loadData(), sec*1000); }
+function stopAuto(){ if(autoId) clearInterval(autoId); autoId=null; }
+
+// bind ui
+document.getElementById('refresh').addEventListener('click', ()=> loadData());
+document.getElementById('csv').addEventListener('click', ()=> downloadCsv());
+document.getElementById('exportPng').addEventListener('click', ()=> exportPng());
+document.getElementById('granularity').addEventListener('change', ()=> applyRender());
+document.getElementById('chartType').addEventListener('change', ()=> applyRender());
+document.getElementById('fromDate').addEventListener('change', ()=> applyRender());
+document.getElementById('toDate').addEventListener('change', ()=> applyRender());
+document.getElementById('ma').addEventListener('change', ()=> applyRender());
+document.getElementById('autoRefresh').addEventListener('change', ()=> { startAuto(); });
+document.getElementById('autoSec').addEventListener('change', ()=> startAuto());
+
+// presets: quick today/24h
+function applyPreset(p){ if(!raw.length) return; const latest = raw[raw.length-1].date; if(p==='today'){ document.getElementById('fromDate').value = isoDateInputString(new Date(latest.getFullYear(),latest.getMonth(),latest.getDate())); document.getElementById('toDate').value = isoDateInputString(new Date(latest.getFullYear(),latest.getMonth(),latest.getDate())); }
+  if(p==='24h'){ const from = new Date(latest.getTime() - 24*3600*1000); document.getElementById('fromDate').value = isoDateInputString(from); document.getElementById('toDate').value = isoDateInputString(latest); }
+  applyRender(); }
+
+// expose quick presets via keyboard: 1=today 2=24h
+window.addEventListener('keydown', (e)=>{ if(e.key==='1') applyPreset('today'); if(e.key==='2') applyPreset('24h'); });
+
+// load on start
+loadData();
+</script>
+</body
