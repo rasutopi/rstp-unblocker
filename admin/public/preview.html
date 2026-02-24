@@ -287,7 +287,14 @@ function render(labels, values, granularity, chartType){
     cumulativeMap.set(key, runningTotal);
   });
   
-  const cum = labels.map(l => cumulativeMap.get(l) || 0);
+  let lastValue = 0;
+
+  const cum = labels.map(l => {
+    if(cumulativeMap.has(l)){
+      lastValue = cumulativeMap.get(l);
+    }
+    return lastValue;
+  });
   
   const datasets = [];
   if(chartType==='bar') datasets.push({ type:'bar', label:'bucket', data:values, backgroundColor:'#60a5fa', borderRadius:4 });
@@ -393,3 +400,4 @@ loadData();
 </script>
 </body>
 </html>
+
