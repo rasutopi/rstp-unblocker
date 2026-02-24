@@ -255,18 +255,40 @@ function movingAverage(arr, window){ if(window<=1) return arr.slice(); const out
 // --- rendering ---
 function render(labels, values, granularity, chartType){
   const ctx = document.getElementById('mainChart').getContext('2d');
-  // 全期間累積を先に作る
-  let total = 0;
+  // ===== 全期間累積を作る =====
+  function getBucketKey(date, granularity){
+    if(granularity === 'minute'){
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+    }
+    if(granularity === 'hour'){
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:00`;
+    }
+    if(granularity === 'day'){
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    }
+    if(granularity === 'month'){
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+    }
+    if(granularity === 'year'){
+      return `${date.getFullYear()}`;
+    }
+    if(granularity === 'week'){
+      return isoWeekKey(date);
+    }
+    return '';
+  }
+  
+  let runningTotal = 0;
   const cumulativeMap = new Map();
   
   raw.forEach(r=>{
-    total++;
-    const key = bucketKeyFromDate(r.date, granularity);
-    cumulativeMap.set(key, total);
+    runningTotal++;
+    const key = getBucketKey(r.date, granularity);
+    cumulativeMap.set(key, runningTotal);
   });
   
-  // グラフ用
   const cum = labels.map(l => cumulativeMap.get(l) || 0);
+  
   const datasets = [];
   if(chartType==='bar') datasets.push({ type:'bar', label:'bucket', data:values, backgroundColor:'#60a5fa', borderRadius:4 });
   else datasets.push({ type:'line', label:'bucket', data:values, fill:false, borderColor:'#60a5fa', tension:0.2 });
@@ -369,5 +391,5 @@ window.addEventListener('keydown', (e)=>{ if(e.key==='1') applyPreset('today'); 
 // load on start
 loadData();
 </script>
-
-</body
+</body>
+</html>
