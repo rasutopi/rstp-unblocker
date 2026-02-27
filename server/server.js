@@ -131,7 +131,7 @@ function requireAuth(req, res, next) {
 // 認証を有効化
 app.use((req, res, next) => {
     // 認証対象外
-    const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', '/static-p/v1', '/static-p/v4'];
+    const openPrefixes = ['/login', '/api/login', '/-assets/img/favicon.png', '/-assets/css/error.css', '/-assets/css/base.css', '/static-p/v1', '/static-p/v4'];
 
     const isOpenPrefix = openPrefixes.some(p => req.path.startsWith(p));
     const isExactRoot = req.path === '/' && req.originalUrl === '/';
