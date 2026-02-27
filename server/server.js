@@ -284,29 +284,29 @@ app.all('/*', async (req, res, next) => {
         let response = await fetch(fetchUrl, fetchOptions);
         
         // LOG OUTPUT
-        const now = new Date();
-        const timestamp =
-          now.getFullYear() + '-' +
-          String(now.getMonth() + 1).padStart(2, '0') + '-' +
-          String(now.getDate()).padStart(2, '0') + ' ' +
-          String(now.getHours()).padStart(2, '0') + ':' +
-          String(now.getMinutes()).padStart(2, '0') + ':' +
-          String(now.getSeconds()).padStart(2, '0');
-        const ip =
-          (req.headers['x-forwarded-for']?.split(',')[0] || '')
-            .trim() ||
-          req.socket.remoteAddress;        
+        // const now = new Date();
+        // const timestamp =
+        //   now.getFullYear() + '-' +
+        //   String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        //   String(now.getDate()).padStart(2, '0') + ' ' +
+        //   String(now.getHours()).padStart(2, '0') + ':' +
+        //   String(now.getMinutes()).padStart(2, '0') + ':' +
+        //   String(now.getSeconds()).padStart(2, '0');
+        // const ip =
+        //   (req.headers['x-forwarded-for']?.split(',')[0] || '')
+        //     .trim() ||
+        //   req.socket.remoteAddress;        
 
-        const duration = Date.now() - startTime;
+        // const duration = Date.now() - startTime;
 
-        pushLog({
-            time: timestamp,
-            ip,
-            method: req.method,
-            status: response.status,
-            url: fetchUrl,
-            duration: duration
-        });
+        // pushLog({
+        //     time: timestamp,
+        //     ip,
+        //     method: req.method,
+        //     status: response.status,
+        //     url: fetchUrl,
+        //     duration: duration
+        // });
         storeSetCookie(response, res, fetchUrl);
 
         let finalUrl = fetchUrl;
@@ -604,116 +604,115 @@ app.listen(PORT, '0.0.0.0', () => {
 
 
 // --- 管理画面 ---
-const http = require('http');
-const { Server } = require('socket.io');
+// const http = require('http');
+// const { Server } = require('socket.io');
 
-// ===== 管理用アプリ（io を先に作る） =====
-const adminApp = express();
-const adminServer = http.createServer(adminApp);
-const io = new Server(adminServer);
+// // ===== 管理用アプリ（io を先に作る） =====
+// const adminApp = express();
+// const adminServer = http.createServer(adminApp);
+// const io = new Server(adminServer);
 
-// ログ保存（オブジェクト配列）
-const accessLogs = [];
+// // ログ保存（オブジェクト配列）
+// const accessLogs = [];
 
-// pushLog はオブジェクトを受け取る（柔軟に対応）
-function pushLog(entry) {
-    // entry が文字列で来てしまった場合はフォールバックで構成
-    let logObj;
-    if (typeof entry === 'string') {
-        // 可能なら簡易パース（安全策）
-        logObj = { raw: entry, time: new Date().toISOString() };
-    } else if (typeof entry === 'object' && entry !== null) {
-        logObj = {
-            time: entry.time || new Date().toISOString(),
-            ip: entry.ip || entry.remote || '-',
-            method: entry.method || '-',
-            status: typeof entry.status === 'number'
-                ? entry.status
-                : (entry.status || '-'),
-            url: entry.url || entry.path || '-',
-            duration: typeof entry.duration === 'number'
-                ? entry.duration
-                : Number(entry.duration),
-            ...(entry.meta && { meta: entry.meta })
-        };
+// // pushLog はオブジェクトを受け取る（柔軟に対応）
+// function pushLog(entry) {
+//     // entry が文字列で来てしまった場合はフォールバックで構成
+//     let logObj;
+//     if (typeof entry === 'string') {
+//         // 可能なら簡易パース（安全策）
+//         logObj = { raw: entry, time: new Date().toISOString() };
+//     } else if (typeof entry === 'object' && entry !== null) {
+//         logObj = {
+//             time: entry.time || new Date().toISOString(),
+//             ip: entry.ip || entry.remote || '-',
+//             method: entry.method || '-',
+//             status: typeof entry.status === 'number'
+//                 ? entry.status
+//                 : (entry.status || '-'),
+//             url: entry.url || entry.path || '-',
+//             duration: typeof entry.duration === 'number'
+//                 ? entry.duration
+//                 : Number(entry.duration),
+//             ...(entry.meta && { meta: entry.meta })
+//         };
 
-    } else {
-        logObj = { raw: String(entry), time: new Date().toISOString() };
-    }
+//     } else {
+//         logObj = { raw: String(entry), time: new Date().toISOString() };
+//     }
 
-    accessLogs.push(logObj);
-    if (accessLogs.length > 1000) accessLogs.shift();
+//     accessLogs.push(logObj);
+//     if (accessLogs.length > 1000) accessLogs.shift();
 
-    // Console には読みやすい文字列で出力
-    const consoleLine = `[${logObj.time}] ${logObj.ip} ${logObj.method} ${logObj.status} ${logObj.url}`;
-    // console.log(consoleLine);
+//     // Console には読みやすい文字列で出力
+//     const consoleLine = `[${logObj.time}] ${logObj.ip} ${logObj.method} ${logObj.status} ${logObj.url}`;
+//     // console.log(consoleLine);
 
-    // Socket.io でオブジェクトを送る
-    try {
-        io.emit('log', logObj);
-    } catch (e) {
-        // io が未初期化でも安全に
-        console.error('io.emit failed', e);
-    }
-}
+//     // Socket.io でオブジェクトを送る
+//     try {
+//         io.emit('log', logObj);
+//     } catch (e) {
+//         // io が未初期化でも安全に
+//         console.error('io.emit failed', e);
+//     }
+// }
 
-adminApp.get("/", (req, res) => {
-  res.redirect("/dashboard");
-});
-adminApp.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, "../admin/public/index.html"));
-});
-adminApp.get('/dashboard/access', (req, res) => {
-    res.sendFile(path.join(__dirname, "../admin/public/preview.html"));
-});
-adminApp.get('/dashboard/fetch', (req, res) => {
-    res.sendFile(path.join(__dirname, "../admin/public/fetchlog.html"));
-});
-adminApp.get("/api/dashboard/access", (req, res) => {
-  fs.readFile(logPath, "utf8", (err, data) => {
-    if (err) return res.json([]);
+// adminApp.get("/", (req, res) => {
+//   res.redirect("/dashboard");
+// });
+// adminApp.get('/dashboard', (req, res) => {
+//     res.sendFile(path.join(__dirname, "../admin/public/index.html"));
+// });
+// adminApp.get('/dashboard/access', (req, res) => {
+//     res.sendFile(path.join(__dirname, "../admin/public/preview.html"));
+// });
+// adminApp.get('/dashboard/fetch', (req, res) => {
+//     res.sendFile(path.join(__dirname, "../admin/public/fetchlog.html"));
+// });
+// adminApp.get("/api/dashboard/access", (req, res) => {
+//   fs.readFile(logPath, "utf8", (err, data) => {
+//     if (err) return res.json([]);
 
-    const lines = data.split("\n").filter(Boolean);
-    const logs = lines.map(line => {
-      try { return JSON.parse(line); }
-      catch { return null; }
-    }).filter(Boolean);
+//     const lines = data.split("\n").filter(Boolean);
+//     const logs = lines.map(line => {
+//       try { return JSON.parse(line); }
+//       catch { return null; }
+//     }).filter(Boolean);
 
-    res.json(logs.slice(-1000));
-  });
-});
-adminApp.get("/api/dashboard/view", (req, res) => {
-  fs.readFile(trackPath, "utf8", (err, data) => {
-    if (err) return res.json([]);
+//     res.json(logs.slice(-1000));
+//   });
+// });
+// adminApp.get("/api/dashboard/view", (req, res) => {
+//   fs.readFile(trackPath, "utf8", (err, data) => {
+//     if (err) return res.json([]);
 
-    const lines = data.split("\n").filter(Boolean);
+//     const lines = data.split("\n").filter(Boolean);
 
-    res.json(lines);
-  });
-});
-// Socket接続時
-io.on('connection', socket => {
-    // 初期データ送信（accessLogs はオブジェクト配列）
-    socket.emit('init', accessLogs);
+//     res.json(lines);
+//   });
+// });
+// // Socket接続時
+// io.on('connection', socket => {
+//     // 初期データ送信（accessLogs はオブジェクト配列）
+//     socket.emit('init', accessLogs);
 
-    // クライアント数ブロードキャスト
-    const clients = io.engine.clientsCount || 0;
-    io.emit('clients', clients);
+//     // クライアント数ブロードキャスト
+//     const clients = io.engine.clientsCount || 0;
+//     io.emit('clients', clients);
 
-    // クライアントからログクリア要求が来たらサーバー側配列をクリア
-    socket.on('clearLogs', () => {
-        accessLogs.length = 0;
-        io.emit('clients', io.engine.clientsCount || 0);
-    });
+//     // クライアントからログクリア要求が来たらサーバー側配列をクリア
+//     socket.on('clearLogs', () => {
+//         accessLogs.length = 0;
+//         io.emit('clients', io.engine.clientsCount || 0);
+//     });
 
-    socket.on('disconnect', () => {
-        io.emit('clients', io.engine.clientsCount || 0);
-    });
-});
+//     socket.on('disconnect', () => {
+//         io.emit('clients', io.engine.clientsCount || 0);
+//     });
+// });
 
-// ランダムポート起動
-adminServer.listen(0, '0.0.0.0', () => {
-    const { port } = adminServer.address();
-    console.log(`Admin console running at http://localhost:${port}`);
-});
-
+// // ランダムポート起動
+// adminServer.listen(0, '0.0.0.0', () => {
+//     const { port } = adminServer.address();
+//     console.log(`Admin console running at http://localhost:${port}`);
+// });
