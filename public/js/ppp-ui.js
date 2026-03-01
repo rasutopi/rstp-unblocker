@@ -76,16 +76,12 @@ function initUI() {
                 width: 28px;
             }
             #-header .visitor-counter {
-                /* 高さを固定値（ロゴより少し小さいくらい）に設定 */
-                height: 24px; 
+                /* 親要素の gap: 5px を活かすため、margin は削除 */
+                height: 20px;          /* 入力欄の文字サイズ感に合わせて調整 */
                 width: auto;
-                /* 左右に余白を設けて独立させる */
-                margin: 0 10px;
-                /* 垂直方向の中央揃えを確実にする */
-                align-self: center;
-                /* ドット絵などの場合はクッキリさせる（好みで） */
-                image-rendering: pixelated;
                 flex-shrink: 0;
+                vertical-align: middle;
+                /* あえて余白は持たせず、隙間は親要素の gap に任せる */
             }
             #-header .title {
                 font-weight: bold;
