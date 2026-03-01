@@ -76,12 +76,20 @@ function initUI() {
                 width: 28px;
             }
             #-header .visitor-counter {
-                /* 親要素の gap: 5px を活かすため、margin は削除 */
-                height: 20px;          /* 入力欄の文字サイズ感に合わせて調整 */
+                /* ロゴ(28px)より一回り大きくして存在感を出す */
+                height: 32px; 
                 width: auto;
+                
+                /* 左右の余白を少し広げて、窮屈さを解消 */
+                margin: 0 15px;
+                
+                /* 垂直方向の中央揃え */
+                display: block;
+                align-self: center;
+                
+                /* ドット絵がボヤけるのを防ぐ（クッキリ見える） */
+                image-rendering: pixelated;
                 flex-shrink: 0;
-                vertical-align: middle;
-                /* あえて余白は持たせず、隙間は親要素の gap に任せる */
             }
             #-header .title {
                 font-weight: bold;
@@ -141,10 +149,11 @@ function initUI() {
                 }
                 #-header .title {
                     font-size: 13px;
-                }
+                }    
                 #-header .visitor-counter {
-                    height: 18px; /* スマホではさらに小さく */
-                    margin: 0 5px;
+                    /* スマホでも「小さすぎ」を防ぐため、24px程度を維持 */
+                    height: 24px;
+                    margin: 0 8px;
                 }
             }
         </style>
