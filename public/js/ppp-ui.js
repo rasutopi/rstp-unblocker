@@ -140,7 +140,7 @@ function initUI() {
                     font-size: 13px;
                 }
                 #-header .visitor-counter {
-                    height: 18px;
+                    height: 90%;
                 }
             }
         </style>
