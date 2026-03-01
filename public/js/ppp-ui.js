@@ -150,7 +150,7 @@ function initUI() {
                 <img src="${ORIGIN}/-assets/img/Icon512x512.png" alt="Icon" />
                 <div class="title">Web</div>
             </a>
-            <img class="visitor-counter" src="${ORIGIN}/static-p/v4?url=https%3A%2F%2Fcount.getloli.com%2F%40RSTP-Unblocker-20260221%3Fname%3DRSTP-Unblocker-20260221%26theme%3Dgelbooru%26padding%3D10%26offset%3D0%26align%3Dtop%26scale%3D1%26pixelated%3D1%26darkmode%3Dauto?__p_origin" alt="visitor counter">
+            <img class="visitor-counter" src="${ORIGIN}/static-p/v4?url=https%3A%2F%2Fcount.getloli.com%2F%40RSTP-Unblocker-20260221%3Fname%3DRSTP-Unblocker-20260221%26theme%3Dgelbooru%26padding%3D10%26offset%3D0%26align%3Dtop%26scale%3D1%26pixelated%3D1%26darkmode%3Dauto?__p_origin=${ORIGIN}" alt="visitor counter">
             <input type="text" id="-url" placeholder="URLを入力" />
             <button id="go-btn">移動</button>
             <button id="close-ui">閉じる</button>
