@@ -76,7 +76,15 @@ function initUI() {
                 width: 28px;
             }
             #-header .visitor-counter {
-                height: 90%;
+                /* 高さを固定値（ロゴより少し小さいくらい）に設定 */
+                height: 24px; 
+                width: auto;
+                /* 左右に余白を設けて独立させる */
+                margin: 0 10px;
+                /* 垂直方向の中央揃えを確実にする */
+                align-self: center;
+                /* ドット絵などの場合はクッキリさせる（好みで） */
+                image-rendering: pixelated;
                 flex-shrink: 0;
             }
             #-header .title {
@@ -139,7 +147,8 @@ function initUI() {
                     font-size: 13px;
                 }
                 #-header .visitor-counter {
-                    height: 90%;
+                    height: 18px; /* スマホではさらに小さく */
+                    margin: 0 5px;
                 }
             }
         </style>
