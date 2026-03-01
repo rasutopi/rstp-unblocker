@@ -76,8 +76,7 @@ function initUI() {
                 width: 28px;
             }
             #-header .visitor-counter {
-                height: 24px;
-                image-rendering: pixelated; /* ドット感を強調 */
+                height: 90%;
                 flex-shrink: 0;
             }
             #-header .title {
