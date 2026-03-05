@@ -22,8 +22,14 @@ router.get("/", async (req, res) => {
   try {
     const upstreamUrl = `${STATIC_API_V4}?url=${encodeURIComponent(url)}`;
 
+    const headers = { ...req.headers };
+
+    delete headers.host;
+    delete headers.connection;
+
     const response = await fetch(upstreamUrl, {
       method: "GET",
+      headers: headers
     });
 
     if (!response.ok) {
@@ -34,10 +40,12 @@ router.get("/", async (req, res) => {
 
     const contentType =
       response.headers.get("content-type") || "application/octet-stream";
+
     res.setHeader("Content-Type", contentType);
 
     const arrayBuffer = await response.arrayBuffer();
     res.status(200).send(Buffer.from(arrayBuffer));
+
   } catch (err) {
     res.status(500).send(`Error fetching upstream: ${err.message}`);
   }
