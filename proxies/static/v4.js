@@ -23,14 +23,34 @@ router.get("/", async (req, res) => {
     const upstreamUrl = `${STATIC_API_V4}?url=${encodeURIComponent(url)}`;
 
     const headers = { ...req.headers };
-
     delete headers.host;
     delete headers.connection;
 
     const response = await fetch(upstreamUrl, {
       method: "GET",
-      headers: headers
+      headers: headers,
+      redirect: "manual"
     });
+
+    // 3xx系チェック
+    if (response.status >= 300 && response.status < 400) {
+      let location = response.headers.get("location");
+      if (!location) {
+        return res.status(502).send("Redirect without location header");
+      }
+
+      // 絶対URLに変換（相対パス対策）
+      const resolvedUrl = new URL(location, url).toString();
+
+      // すでにプロキシ経由ならそのまま
+      const isAlreadyProxied = resolvedUrl.includes(STATIC_API_V4);
+
+      const proxiedLocation = isAlreadyProxied
+        ? resolvedUrl
+        : `/?url=${encodeURIComponent(resolvedUrl)}`;
+
+      return res.redirect(response.status, proxiedLocation);
+    }
 
     if (!response.ok) {
       return res
