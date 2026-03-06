@@ -32,39 +32,30 @@ router.get("/", async (req, res) => {
       redirect: "manual"
     });
 
-    // 3xx系チェック
+    // redirect
     if (response.status >= 300 && response.status < 400) {
       let location = response.headers.get("location");
       if (!location) {
         return res.status(502).send("Redirect without location header");
       }
 
-      // 絶対URLに変換（相対パス対策）
       const resolvedUrl = new URL(location, url).toString();
-
-      // すでにプロキシ経由ならそのまま
-      const isAlreadyProxied = resolvedUrl.includes(STATIC_API_V4);
-
-      const proxiedLocation = isAlreadyProxied
-        ? resolvedUrl
-        : `/?url=${encodeURIComponent(resolvedUrl)}`;
+      const proxiedLocation = `/?url=${encodeURIComponent(resolvedUrl)}`;
 
       return res.redirect(response.status, proxiedLocation);
     }
 
-    if (!response.ok) {
-      return res
-        .status(response.status)
-        .send(`Upstream error: ${response.statusText}`);
-    }
+    // statusそのまま
+    res.status(response.status);
 
-    const contentType =
-      response.headers.get("content-type") || "application/octet-stream";
+    // header転送
+    response.headers.forEach((value, key) => {
+      if (key === "transfer-encoding" || key === "connection") return;
+      res.setHeader(key, value);
+    });
 
-    res.setHeader("Content-Type", contentType);
-
-    const arrayBuffer = await response.arrayBuffer();
-    res.status(200).send(Buffer.from(arrayBuffer));
+    // stream pipe
+    response.body.pipe(res);
 
   } catch (err) {
     res.status(500).send(`Error fetching upstream: ${err.message}`);
